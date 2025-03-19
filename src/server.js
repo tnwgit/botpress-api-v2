@@ -19,8 +19,21 @@ app.use(express.json());
 // Zorg ervoor dat de styling-map bestaat
 const STYLING_DIR = path.join(__dirname, '../data/styling');
 if (!fs.existsSync(STYLING_DIR)) {
-    fs.mkdirSync(STYLING_DIR, { recursive: true });
+    try {
+        fs.mkdirSync(STYLING_DIR, { recursive: true });
+        console.log(`Styling directory aangemaakt: ${STYLING_DIR}`);
+    } catch (error) {
+        console.error(`Kon styling directory niet aanmaken: ${error.message}`);
+        // Geen throw, we gaan verder omdat we in productie mogelijk andere opslag gebruiken
+    }
 }
+
+// Helper om te controleren of we in Vercel productie omgeving zitten
+const isVercelProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+console.log(`Draait in Vercel productie omgeving: ${isVercelProduction}`);
+
+// In-memory storage voor styling in productie als fallback
+const stylingMemoryStorage = new Map();
 
 // Root route toont configuratie pagina
 app.get('/', (req, res) => {
@@ -266,17 +279,45 @@ app.get('/api/bots', async (req, res) => {
 app.get('/api/bot-styling/:botId', (req, res) => {
     try {
         const { botId } = req.params;
+        
+        if (!botId) {
+            return res.status(400).json({ error: 'Geen botId opgegeven' });
+        }
+        
+        console.log(`Ophalen styling voor bot ${botId}...`);
+        
+        // Controleer eerst of we de styling in memory hebben (voor Vercel)
+        if (isVercelProduction && stylingMemoryStorage.has(botId)) {
+            console.log(`Styling voor bot ${botId} gevonden in memory storage`);
+            return res.json(stylingMemoryStorage.get(botId));
+        }
+        
+        // Anders proberen we het uit het bestandssysteem te lezen
         const stylingPath = path.join(STYLING_DIR, `${botId}.json`);
-
+        console.log(`Proberen styling te lezen van: ${stylingPath}`);
+        
         if (!fs.existsSync(stylingPath)) {
+            console.log(`Geen styling gevonden voor bot ${botId}`);
             return res.status(404).json({ error: 'Geen styling gevonden voor deze bot' });
         }
 
-        const styling = JSON.parse(fs.readFileSync(stylingPath, 'utf8'));
-        res.json(styling);
+        try {
+            const styling = JSON.parse(fs.readFileSync(stylingPath, 'utf8'));
+            
+            // Sla ook op in memory storage als backup
+            if (isVercelProduction) {
+                stylingMemoryStorage.set(botId, styling);
+            }
+            
+            console.log(`Styling succesvol opgehaald voor bot ${botId}`);
+            res.json(styling);
+        } catch (readError) {
+            console.error(`Fout bij lezen styling bestand: ${readError.message}`);
+            return res.status(500).json({ error: 'Kon styling bestand niet lezen' });
+        }
     } catch (error) {
         console.error('Error fetching bot styling:', error);
-        res.status(500).json({ error: 'Er is een fout opgetreden bij het ophalen van de bot styling' });
+        res.status(500).json({ error: `Er is een fout opgetreden bij het ophalen van de bot styling: ${error.message}` });
     }
 });
 
@@ -297,6 +338,15 @@ app.post('/api/bot-styling/:botId', (req, res) => {
         
         console.log(`Opslaan styling voor bot ${botId}...`);
         
+        // Als we in Vercel productie draaien, sla dan op in memory
+        if (isVercelProduction) {
+            console.log(`Styling opslaan in memory storage voor bot ${botId}`);
+            stylingMemoryStorage.set(botId, styling);
+            console.log('Styling succesvol opgeslagen in memory');
+            return res.json({ success: true });
+        }
+        
+        // Anders proberen we naar het bestandssysteem te schrijven
         // Controleer of de styling map bestaat
         if (!fs.existsSync(STYLING_DIR)) {
             console.log('Styling map bestaat niet, wordt aangemaakt...');
@@ -308,7 +358,7 @@ app.post('/api/bot-styling/:botId', (req, res) => {
         
         // Schrijf het bestand synchroon om problemen te voorkomen
         fs.writeFileSync(stylingPath, JSON.stringify(styling, null, 2));
-        console.log('Styling succesvol opgeslagen');
+        console.log('Styling succesvol opgeslagen in bestand');
         
         res.json({ success: true });
     } catch (error) {

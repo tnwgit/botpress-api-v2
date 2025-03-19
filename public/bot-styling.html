@@ -579,32 +579,44 @@
         
         // Verzamel alle data uit het formulier
         function getStylingFromForm() {
-            return {
-                general: {
-                    title: document.getElementById('bot-title').value,
-                    logo: document.getElementById('bot-logo').value,
-                    fontFamily: document.getElementById('font-family').value
-                },
-                colors: {
-                    primary: document.getElementById('primary-color').value,
-                    background: document.getElementById('background-color').value,
-                    userBubble: document.getElementById('user-bubble-color').value,
-                    botBubble: document.getElementById('bot-bubble-color').value,
-                    userText: document.getElementById('user-text-color').value,
-                    botText: document.getElementById('bot-text-color').value,
-                    titleText: document.getElementById('title-text-color').value
-                },
-                text: {
-                    welcomeMessage: document.getElementById('welcome-message').value,
-                    placeholderText: document.getElementById('placeholder-text').value,
-                    noResponseText: document.getElementById('no-response-text').value
-                },
-                dimensions: {
-                    chatHeight: parseInt(document.getElementById('chat-height').value),
-                    chatWidth: parseInt(document.getElementById('chat-width').value),
-                    borderRadius: parseInt(document.getElementById('border-radius').value)
+            // Haal alle velden op
+            try {
+                // Controleer of alle benodigde elementen bestaan
+                if (!document.getElementById('bot-title')) {
+                    console.error('Kan het veld bot-title niet vinden');
+                    throw new Error('Ontbrekende velden in het formulier');
                 }
-            };
+                
+                return {
+                    general: {
+                        title: document.getElementById('bot-title').value,
+                        logo: document.getElementById('bot-logo').value,
+                        fontFamily: document.getElementById('font-family').value
+                    },
+                    colors: {
+                        primary: document.getElementById('primary-color').value,
+                        background: document.getElementById('background-color').value,
+                        userBubble: document.getElementById('user-bubble-color').value,
+                        botBubble: document.getElementById('bot-bubble-color').value,
+                        userText: document.getElementById('user-text-color').value,
+                        botText: document.getElementById('bot-text-color').value,
+                        titleText: document.getElementById('title-text-color').value
+                    },
+                    text: {
+                        welcomeMessage: document.getElementById('welcome-message').value,
+                        placeholderText: document.getElementById('placeholder-text').value,
+                        noResponseText: document.getElementById('no-response-text').value
+                    },
+                    dimensions: {
+                        chatHeight: document.getElementById('chat-height').value,
+                        chatWidth: document.getElementById('chat-width').value,
+                        borderRadius: document.getElementById('border-radius').value
+                    }
+                };
+            } catch (error) {
+                console.error('Fout bij verzamelen form data:', error);
+                throw new Error('Kon formuliergegevens niet verzamelen');
+            }
         }
         
         // Update het voorbeeld met de huidige styling
@@ -653,21 +665,23 @@
             previewSend.style.color = styling.colors.userText;
         }
         
-        // Sla de styling op
+        // Styling opslaan
         async function saveStyling() {
-            if (!currentBot) {
-                showNotification('Selecteer eerst een bot', 'error');
-                return;
-            }
-            
-            const styling = getStylingFromForm();
-            
             try {
-                console.log('Opslaan styling voor bot:', currentBot.id);
+                if (!currentBot || !currentBot.id) {
+                    console.error('Geen geldige bot geselecteerd voor styling opslaan');
+                    showNotification('Selecteer eerst een bot', 'error');
+                    return;
+                }
                 
-                // Toon laad indicator
-                showNotification('Styling wordt opgeslagen...', 'success');
+                console.log('Styling opslaan voor bot:', currentBot.id);
                 
+                // Haal styling data op uit formulier
+                const styling = getStylingFromForm();
+                console.log('Styling data om op te slaan:', styling);
+                
+                // Verstuur naar server
+                console.log(`API aanroep naar /api/bot-styling/${currentBot.id}`);
                 const response = await fetch(`/api/bot-styling/${currentBot.id}`, {
                     method: 'POST',
                     headers: {
@@ -676,12 +690,17 @@
                     body: JSON.stringify(styling)
                 });
                 
-                if (!response.ok) throw new Error('Kon styling niet opslaan');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server response:', response.status, errorText);
+                    throw new Error(`Kon styling niet opslaan: ${response.status} ${errorText}`);
+                }
                 
+                console.log('Styling succesvol opgeslagen!');
                 showNotification('Styling succesvol opgeslagen!', 'success');
             } catch (error) {
                 console.error('Fout bij opslaan styling:', error);
-                showNotification('Er is een fout opgetreden bij het opslaan van de styling. Probeer het later opnieuw.', 'error');
+                showNotification(`Fout bij opslaan: ${error.message}`, 'error');
             }
         }
         

@@ -285,13 +285,35 @@ app.post('/api/bot-styling/:botId', (req, res) => {
         const { botId } = req.params;
         const styling = req.body;
         
+        if (!botId) {
+            console.error('Geen botId opgegeven in de request');
+            return res.status(400).json({ error: 'Geen botId opgegeven' });
+        }
+        
+        if (!styling) {
+            console.error('Geen styling data in request body');
+            return res.status(400).json({ error: 'Geen styling data opgegeven' });
+        }
+        
+        console.log(`Opslaan styling voor bot ${botId}...`);
+        
+        // Controleer of de styling map bestaat
+        if (!fs.existsSync(STYLING_DIR)) {
+            console.log('Styling map bestaat niet, wordt aangemaakt...');
+            fs.mkdirSync(STYLING_DIR, { recursive: true });
+        }
+        
         const stylingPath = path.join(STYLING_DIR, `${botId}.json`);
+        console.log(`Schrijven naar bestand: ${stylingPath}`);
+        
+        // Schrijf het bestand synchroon om problemen te voorkomen
         fs.writeFileSync(stylingPath, JSON.stringify(styling, null, 2));
+        console.log('Styling succesvol opgeslagen');
         
         res.json({ success: true });
     } catch (error) {
         console.error('Error saving bot styling:', error);
-        res.status(500).json({ error: 'Er is een fout opgetreden bij het opslaan van de bot styling' });
+        res.status(500).json({ error: `Er is een fout opgetreden bij het opslaan van de bot styling: ${error.message}` });
     }
 });
 

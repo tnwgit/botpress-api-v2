@@ -261,6 +261,21 @@
             background: #6c757d;
             cursor: not-allowed;
         }
+        
+        #sendButton {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #sendButton svg {
+            width: 18px;
+            height: 18px;
+        }
 
         .typing-indicator {
             display: none;
@@ -350,7 +365,12 @@
                 rows="1"
                 onkeydown="if(event.keyCode === 13 && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
             ></textarea>
-            <button onclick="sendMessage()" id="sendButton">Verstuur</button>
+            <button onclick="sendMessage()" id="sendButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
         </div>
     </div>
 

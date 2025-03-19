@@ -428,33 +428,43 @@
             }, 5000);
         }
         
-        // Haal alle bots op bij het laden van de pagina
+        // Laad bots van server
         async function loadBots() {
             try {
-                console.log('Ophalen bots...');
-                
                 const response = await fetch('/api/bots');
-                if (!response.ok) throw new Error('Kon bots niet ophalen');
-                
-                allBots = await response.json();
-                
-                const selectElement = document.getElementById('bot-select');
-                selectElement.innerHTML = '<option value="">-- Selecteer een bot --</option>';
-                
-                if (!allBots || allBots.length === 0) {
-                    showNotification('Geen bots gevonden. Voeg eerst een bot toe via het dashboard.', 'error');
-                    return;
+                if (!response.ok) {
+                    throw new Error('Probleem bij ophalen bots');
                 }
                 
-                allBots.forEach(bot => {
+                const bots = await response.json();
+                allBots = bots;
+                
+                // Wis huidige opties
+                const selectElement = document.getElementById('bot-select');
+                selectElement.innerHTML = '<option value="">Selecteer een bot</option>';
+                
+                // Voeg bots toe aan dropdown
+                bots.forEach(bot => {
                     const option = document.createElement('option');
                     option.value = bot.id;
                     option.textContent = bot.name;
                     selectElement.appendChild(option);
                 });
+                
+                // Controleer URL parameters voor botId
+                const urlParams = new URLSearchParams(window.location.search);
+                const botIdFromUrl = urlParams.get('botId');
+                if (botIdFromUrl) {
+                    console.log('Automatisch selecteren van bot uit URL:', botIdFromUrl);
+                    selectElement.value = botIdFromUrl;
+                    
+                    // Trigger change event
+                    const event = new Event('change');
+                    selectElement.dispatchEvent(event);
+                }
             } catch (error) {
-                console.error('Fout bij ophalen bots:', error);
-                showNotification('Er is een fout opgetreden bij het ophalen van de bots. Probeer het later opnieuw.', 'error');
+                console.error('Fout bij laden bots:', error);
+                showNotification('Er is een fout opgetreden bij het laden van de bots', 'error');
             }
         }
         

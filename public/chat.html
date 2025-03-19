@@ -54,6 +54,21 @@
             height: 16px;
         }
 
+        .bot-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 20px;
+        }
+
+        .bot-logo img {
+            height: 150px;
+            width: auto;
+            max-width: 100%;
+        }
+
         .chat-container {
             max-width: 800px;
             width: 100%;
@@ -306,6 +321,10 @@
         }
 
         @media (max-width: 640px) {
+            .bot-logo img {
+                height: 100px;
+            }
+            
             .chat-container {
                 padding: 10px;
             }
@@ -319,7 +338,7 @@
             }
 
             #messageInput {
-                font-size: 16px; /* Voorkomt inzoomen op iOS */
+                font-size: 16px;
             }
 
             button {
@@ -336,6 +355,9 @@
         </svg>
         Beheer
     </button>
+    <div id="logo-container" class="bot-logo">
+        <!-- Logo wordt hier dynamisch ingevoegd -->
+    </div>
     <div class="chat-container">
         <div class="chat-header">
             <div class="bot-name" id="botName">Laden...</div>
@@ -873,24 +895,14 @@
             
             // Logo
             if (styling.general.logo) {
-                const logoContainer = document.createElement('div');
-                logoContainer.className = 'bot-logo';
-                logoContainer.style.marginRight = '10px';
-                logoContainer.style.display = 'flex';
-                logoContainer.style.alignItems = 'center';
-                logoContainer.style.justifyContent = 'center';
+                const logoContainer = document.getElementById('logo-container');
+                logoContainer.innerHTML = ''; // Wis bestaande inhoud
                 
                 const logoImg = document.createElement('img');
                 logoImg.src = styling.general.logo;
                 logoImg.alt = 'Bot Logo';
-                logoImg.style.maxHeight = '60px';
-                logoImg.style.maxWidth = '225px';
                 
                 logoContainer.appendChild(logoImg);
-                
-                // Voeg het logo toe aan de header, vóór de titel
-                const botName = document.getElementById('botName');
-                botName.parentNode.insertBefore(logoContainer, botName);
             }
         }
 

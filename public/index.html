@@ -33,8 +33,19 @@
                                     <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                                 </svg>
                             </button>
-                            <button class="action-button start-chat" onclick="handleStartChat('${bot.id}', '${bot.name}', '${bot.webhook_id}')">Start Chat</button>
-                            <a href="/bot-styling.html?botId=${bot.id}" class="styling-link">Styling</a>
+                            <button class="action-button start-chat" onclick="handleStartChat('${bot.id}', '${bot.name}', '${bot.webhook_id}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                Start Chat
+                            </button>
+                            <a href="/bot-styling.html?botId=${bot.id}" class="styling-link">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                                Styling
+                            </a>
                             <button class="action-button delete-bot" onclick="deleteBot('${bot.id}')">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18"></path>
@@ -202,8 +213,90 @@
         .bot-item .bot-actions {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         
+        .action-button, .styling-link {
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: none;
+            height: 36px;
+            min-width: 36px;
+        }
+
+        .action-button svg, .styling-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .start-chat {
+            background-color: #28a745;
+            color: white;
+            min-width: 110px;
+        }
+
+        .start-chat:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .styling-link {
+            background-color: #6c757d;
+            color: white;
+            min-width: 100px;
+        }
+
+        .styling-link:hover {
+            background-color: #5a6268;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .delete-bot, .edit-bot {
+            background-color: transparent;
+            width: 36px;
+            padding: 0;
+            justify-content: center;
+        }
+
+        .delete-bot {
+            color: #dc3545;
+        }
+        
+        .delete-bot:hover {
+            background-color: #dc3545;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .edit-bot {
+            color: #007bff;
+        }
+        
+        .edit-bot:hover {
+            background-color: #007bff;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .bot-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .error {
             color: #dc3545;
             margin-top: 5px;
@@ -221,61 +314,63 @@
             margin-bottom: 20px;
         }
         
-        .styling-link {
-            display: inline-block;
-            padding: 10px 15px;
-            background-color: #6c757d;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            transition: background-color 0.3s;
-        }
-        
-        .styling-link:hover {
-            background-color: #5a6268;
-            color: white;
-            text-decoration: none;
-        }
-
         .empty-state {
             text-align: center;
             padding: 20px;
             color: #6c757d;
         }
-        
-        .delete-bot {
-            background-color: transparent;
-            color: #dc3545;
-            padding: 5px;
-            transition: all 0.2s;
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            max-width: 520px;
         }
-        
-        .delete-bot:hover {
-            background-color: #dc3545;
-            color: white;
+
+        .form-group label {
+            width: 120px;
+            text-align: right;
+            color: #495057;
+            font-weight: 500;
+            flex-shrink: 0;
         }
-        
-        .edit-bot {
-            background-color: transparent;
-            color: #007bff;
-            padding: 5px;
-            transition: all 0.2s;
+
+        .form-group input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.95em;
+            transition: border-color 0.2s;
         }
-        
-        .edit-bot:hover {
-            background-color: #007bff;
-            color: white;
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .form-group input::placeholder {
+            color: #adb5bd;
+        }
+
+        .add-bot-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .add-bot-form .form-group:last-child {
+            margin-bottom: 0;
+            justify-content: flex-end;
         }
     </style>
 </head>
 <body>
     <div class="container mt-5">
         <h1>Botpress API Dashboard</h1>
-        
-        <button id="addBotBtn" class="btn btn-primary mb-3">Nieuwe Bot Toevoegen</button>
-        
-        <hr>
         
         <h2>Beschikbare Bots</h2>
         <div id="botList" class="list-group mb-4">
@@ -296,7 +391,9 @@
                 <label for="webhookId">Webhook ID</label>
                 <input type="text" id="webhookId" placeholder="Voer de webhook ID in">
             </div>
-            <button class="start-chat" onclick="addNewBot()">Bot Toevoegen</button>
+            <div class="form-group">
+                <button class="action-button start-chat" onclick="addNewBot()">Bot Toevoegen</button>
+            </div>
         </div>
     </div>
 </body>

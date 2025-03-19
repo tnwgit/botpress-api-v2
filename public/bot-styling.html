@@ -241,6 +241,16 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        .primary-button {
+            background-color: #28a745;
+            color: white;
+            margin-left: 10px;
+        }
+        
+        .primary-button:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -378,6 +388,7 @@
 
             <button id="save-button">Opslaan</button>
             <button id="reset-button">Reset naar Standaard</button>
+            <button id="start-chat-button" class="primary-button">Start Chat</button>
         </div>
 
         <div class="preview-container">
@@ -797,6 +808,22 @@
                 if (confirm('Weet je zeker dat je alle aanpassingen wilt resetten naar de standaardwaarden?')) {
                     updateForm(getDefaultStyling());
                 }
+            });
+
+            // Start Chat knop
+            document.getElementById('start-chat-button').addEventListener('click', () => {
+                if (!currentBot) {
+                    showNotification('Selecteer eerst een bot', 'error');
+                    return;
+                }
+                
+                // Sla de benodigde gegevens op in localStorage
+                localStorage.setItem('botId', currentBot.id);
+                localStorage.setItem('botName', currentBot.name);
+                localStorage.setItem('webhookId', currentBot.webhook_id);
+                
+                // Navigeer naar de chat pagina
+                window.location.href = `/chat.html?botId=${currentBot.id}`;
             });
         });
     </script>

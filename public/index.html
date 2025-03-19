@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistent Configuratie</title>
+    <script type="module">
+        import { getBots, addBot, deleteBot } from './supabase.js';
+
+        // Functie om de botlijst bij te werken
+        async function updateBotList() {
+            try {
+                const bots = await getBots();
+                const botList = document.getElementById('botList');
+                botList.innerHTML = '';
+                
+                if (!bots || bots.length === 0) {
+                    botList.innerHTML = '<div class="empty-state">Nog geen bots geconfigureerd</div>';
+                    return;
+                }
+
+                bots.forEach(bot => {
+                    const botItem = document.createElement('div');
+                    botItem.className = 'bot-item';
+                    botItem.innerHTML = `
+                        <div class="bot-info">
+                            <h3>${bot.name}</h3>
+                            <p>Webhook ID: ${bot.webhook_id}</p>
+                        </div>
+                        <div class="bot-actions">
+                            <button onclick="handleStartChat('${bot.id}', '${bot.name}', '${bot.webhook_id}')">Start Chat</button>
+                            <button onclick="handleRemoveBot('${bot.id}')">Verwijder</button>
+                        </div>
+                    `;
+                    botList.appendChild(botItem);
+                });
+            } catch (error) {
+                console.error('Error updating bot list:', error);
+                document.getElementById('botList').innerHTML = '<div class="error">Er is een fout opgetreden bij het laden van de bots</div>';
+            }
+        }
+
+        // Functie om een nieuwe bot toe te voegen
+        async function handleAddBot() {
+            const nameInput = document.getElementById('botName');
+            const webhookInput = document.getElementById('webhookId');
+            const name = nameInput.value.trim();
+            const webhookId = webhookInput.value.trim();
+
+            if (!name || !webhookId) {
+                alert('Vul alle velden in');
+                return;
+            }
+
+            try {
+                const bot = await addBot(name, webhookId);
+                if (bot) {
+                    nameInput.value = '';
+                    webhookInput.value = '';
+                    await updateBotList();
+                } else {
+                    alert('Er is een fout opgetreden bij het toevoegen van de bot');
+                }
+            } catch (error) {
+                console.error('Error adding bot:', error);
+                alert('Er is een fout opgetreden bij het toevoegen van de bot');
+            }
+        }
+
+        // Functie om een bot te verwijderen
+        async function handleRemoveBot(id) {
+            if (confirm('Weet je zeker dat je deze bot wilt verwijderen?')) {
+                try {
+                    const success = await deleteBot(id);
+                    if (success) {
+                        await updateBotList();
+                    } else {
+                        alert('Er is een fout opgetreden bij het verwijderen van de bot');
+                    }
+                } catch (error) {
+                    console.error('Error removing bot:', error);
+                    alert('Er is een fout opgetreden bij het verwijderen van de bot');
+                }
+            }
+        }
+
+        // Functie om chat te starten
+        async function handleStartChat(id, name, webhookId) {
+            try {
+                console.log('Start chat met:', { id, name, webhookId });
+                
+                // Wis bestaande chat data
+                localStorage.removeItem('userId');
+                localStorage.removeItem('userKey');
+                localStorage.removeItem('conversationId');
+                localStorage.removeItem('lastBotMessageId');
+                
+                // Sla nieuwe bot gegevens op
+                localStorage.setItem('botId', id);
+                localStorage.setItem('botName', name);
+                localStorage.setItem('webhookId', webhookId);
+                
+                console.log('Nieuwe gegevens opgeslagen in localStorage');
+                
+                // Ga naar chat pagina
+                window.location.href = '/chat.html';
+            } catch (error) {
+                console.error('Fout bij starten chat:', error);
+                alert('Er is een fout opgetreden bij het starten van de chat');
+            }
+        }
+
+        // Exporteer functies naar window object voor onclick handlers
+        window.addNewBot = handleAddBot;
+        window.removeBot = handleRemoveBot;
+        window.handleStartChat = handleStartChat;
+
+        // Update botlijst bij laden van de pagina
+        document.addEventListener('DOMContentLoaded', updateBotList);
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .bot-list {
+            margin-bottom: 20px;
+        }
+
+        .bot-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (min-width: 640px) {
+            .bot-item {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .bot-info {
+            flex-grow: 1;
+        }
+
+        .bot-name {
+            font-weight: bold;
+            color: #212529;
+        }
+
+        .bot-id {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+
+        .bot-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        @media (min-width: 640px) {
+            .bot-actions {
+                width: auto;
+            }
+        }
+
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            flex: 1;
+        }
+
+        @media (min-width: 640px) {
+            button {
+                flex: 0 1 auto;
+                min-width: 120px;
+            }
+        }
+
+        .start-chat {
+            background: #007bff;
+            color: white;
+        }
+
+        .start-chat:hover {
+            background: #0056b3;
+        }
+
+        .remove-bot {
+            background: #dc3545;
+            color: white;
+        }
+
+        .remove-bot:hover {
+            background: #c82333;
+        }
+
+        .add-bot-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #212529;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .error {
+            color: #dc3545;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Assistent Configuratie</h1>
+        
+        <div class="bot-list" id="botList">
+            <!-- Bots worden hier dynamisch toegevoegd -->
+        </div>
+
+        <div class="add-bot-form">
+            <div class="form-group">
+                <label for="botName">Assistent Naam</label>
+                <input type="text" id="botName" placeholder="Voer een naam in voor de bot">
+            </div>
+            <div class="form-group">
+                <label for="webhookId">Webhook ID</label>
+                <input type="text" id="webhookId" placeholder="Voer de webhook ID in">
+            </div>
+            <button class="start-chat" onclick="addNewBot()">Bot Toevoegen</button>
+        </div>
+    </div>
+</body>
+</html> 

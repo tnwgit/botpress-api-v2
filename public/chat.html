@@ -383,6 +383,7 @@
         let lastBotMessageId = null;
         let messageHistory = [];
         let isProcessing = false;
+        let chatStyling = null;
 
         if (!webhookId || !botName) {
             window.location.href = '/';
@@ -590,6 +591,12 @@
                         text: latestBotMessage.payload?.text || latestBotMessage.payload?.message || 'geen tekst'
                     });
 
+                    // Controleer of we dit bericht al eerder hebben verwerkt
+                    if (lastBotMessageId === latestBotMessage.id) {
+                        console.log('Dit bericht is al eerder verwerkt, we slaan het over', lastBotMessageId);
+                        return null;
+                    }
+
                     // Onthoud dit bericht ID zodat we het niet opnieuw tonen
                     lastBotMessageId = latestBotMessage.id;
                     localStorage.setItem('lastBotMessageId', latestBotMessage.id);
@@ -750,16 +757,177 @@
             }
         }
 
-        // Initialiseer chat bij laden
-        window.addEventListener('load', async () => {
-            console.log('Pagina geladen, start chat initialisatie...');
+        // Haal de styling op voor de huidige bot
+        async function loadBotStyling() {
+            const botId = localStorage.getItem('botId');
+            console.log('Ophalen styling voor botId:', botId);
+            
+            if (!botId) {
+                console.log('Geen botId gevonden in localStorage');
+                return null;
+            }
+            
             try {
-                const success = await initializeChat();
-                if (!success) {
-                    console.error('Chat initialisatie mislukt');
+                console.log(`API aanroep naar /api/bot-styling/${botId}`);
+                const response = await fetch(`/api/bot-styling/${botId}`);
+                
+                if (response.status === 404) {
+                    console.log('Geen styling gevonden voor deze bot, gebruik standaard styling');
+                    return null;
                 }
+                
+                if (!response.ok) {
+                    console.error('Fout bij ophalen styling:', await response.text());
+                    return null;
+                }
+                
+                const styling = await response.json();
+                console.log('Styling succesvol opgehaald:', styling);
+                
+                // Pas styling direct toe
+                applyBotStyling(styling);
+                
+                return styling;
             } catch (error) {
-                console.error('Fout bij laden chat:', error);
+                console.error('Fout bij ophalen styling:', error);
+                return null;
+            }
+        }
+
+        // Pas de interface styling toe
+        function applyBotStyling(styling) {
+            if (!styling) return;
+            
+            // Sla styling op in globale variabele
+            chatStyling = styling;
+            
+            // Elements
+            const chatContainer = document.querySelector('.chat-container');
+            const chatHeader = document.querySelector('.chat-header');
+            const chatMessages = document.querySelector('.chat-messages');
+            const chatInput = document.querySelector('.chat-input');
+            const sendButton = document.getElementById('sendButton');
+            const messageInput = document.getElementById('messageInput');
+            
+            // Algemene stijl
+            document.body.style.fontFamily = styling.general.fontFamily || 'Arial, sans-serif';
+            
+            // Chat titel
+            if (styling.general.title) {
+                document.getElementById('botName').textContent = styling.general.title;
+            }
+            
+            // Voeg expliciete tekstkleur toe voor de chat titel
+            if (styling.colors && styling.colors.titleText) {
+                document.getElementById('botName').style.color = styling.colors.titleText;
+            } else if (styling.colors && styling.colors.userText) {
+                chatHeader.style.color = styling.colors.userText;
+                document.getElementById('botName').style.color = styling.colors.userText;
+            }
+            
+            // Kleuren
+            if (styling.colors) {
+                chatHeader.style.backgroundColor = styling.colors.primary;
+                
+                // Chat berichten container
+                chatMessages.style.backgroundColor = styling.colors.background;
+                
+                // Chat input
+                chatInput.style.backgroundColor = styling.colors.background;
+                
+                // Verzendknop
+                sendButton.style.backgroundColor = styling.colors.primary;
+                sendButton.style.color = styling.colors.userText;
+                
+                // Stylesheet voor berichten en berichten overschrijven
+                const styleEl = document.createElement('style');
+                styleEl.textContent = `
+                    .message.user {
+                        background-color: ${styling.colors.userBubble};
+                        color: ${styling.colors.userText};
+                    }
+                    .message.bot {
+                        background-color: ${styling.colors.botBubble};
+                        color: ${styling.colors.botText};
+                    }
+                `;
+                document.head.appendChild(styleEl);
+            }
+            
+            // Text placeholders
+            if (styling.text) {
+                messageInput.placeholder = styling.text.placeholderText || 'Type je bericht...';
+            }
+            
+            // Afmetingen
+            if (styling.dimensions) {
+                const container = document.querySelector('.chat-container');
+                const borderRadius = styling.dimensions.borderRadius;
+                
+                if (borderRadius) {
+                    container.style.borderRadius = `${borderRadius}px`;
+                    chatHeader.style.borderRadius = `${borderRadius}px ${borderRadius}px 0 0`;
+                    chatInput.style.borderRadius = `0 0 ${borderRadius}px ${borderRadius}px`;
+                }
+            }
+            
+            // Logo
+            if (styling.general.logo) {
+                const logoContainer = document.createElement('div');
+                logoContainer.className = 'bot-logo';
+                logoContainer.style.marginRight = '10px';
+                logoContainer.style.display = 'flex';
+                logoContainer.style.alignItems = 'center';
+                logoContainer.style.justifyContent = 'center';
+                
+                const logoImg = document.createElement('img');
+                logoImg.src = styling.general.logo;
+                logoImg.alt = 'Bot Logo';
+                logoImg.style.maxHeight = '40px';
+                logoImg.style.maxWidth = '150px';
+                
+                logoContainer.appendChild(logoImg);
+                
+                // Voeg het logo toe aan de header, vóór de titel
+                const botName = document.getElementById('botName');
+                botName.parentNode.insertBefore(logoContainer, botName);
+            }
+        }
+
+        // Bij pagina laden
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Pagina geladen, initialiseren chat...');
+            
+            // Herstel lastBotMessageId van localStorage
+            const savedLastBotMessageId = localStorage.getItem('lastBotMessageId');
+            if (savedLastBotMessageId) {
+                console.log('Herstellen van lastBotMessageId uit localStorage:', savedLastBotMessageId);
+                lastBotMessageId = savedLastBotMessageId;
+            }
+            
+            // Controleer of de botId bestaat in localStorage
+            const botId = localStorage.getItem('botId');
+            console.log('BotId in localStorage:', botId);
+            
+            // Als het botId ontbreekt, probeer het uit de URL te halen
+            if (!botId && window.location.search) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlBotId = urlParams.get('botId');
+                if (urlBotId) {
+                    console.log('BotId uit URL parameters:', urlBotId);
+                    localStorage.setItem('botId', urlBotId);
+                }
+            }
+            
+            // Laad altijd de bot styling
+            const styling = await loadBotStyling();
+            
+            // Controleer bestaande chatgegevens
+            if (userId && userKey && conversationId) {
+                console.log('Bestaande chat gegevens gevonden');
+            } else {
+                console.log('Geen chat gegevens gevonden, initialiseren...');
+                await initializeChat();
             }
         });
 

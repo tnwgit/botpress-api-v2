@@ -3,7 +3,18 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const supabaseUrl = 'https://clngtypfotklhyekznzi.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsbmd0eXBmb3RrbGh5ZWt6bnppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNjI5MTIsImV4cCI6MjA1NzczODkxMn0.89eVhGEdDrQzQQ82zo_OizlzJ4K9X3xGIliwSOf2H8A'
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Creëer client met expliciete headers configuratie
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: false
+    },
+    global: {
+        headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`
+        }
+    }
+})
 
 // Functie om alle bots op te halen
 export async function getBots() {
@@ -56,11 +67,12 @@ export async function deleteBot(id) {
             .from('bots')
             .delete()
             .eq('id', id)
-
+        
         if (error) {
             console.error('Supabase error:', error);
             throw error;
         }
+        
         console.log('Bot verwijderd');
         return true;
     } catch (error) {

@@ -1,0 +1,25 @@
+{
+  "general": {
+    "title": "",
+    "logo": "",
+    "fontFamily": "Arial, sans-serif"
+  },
+  "colors": {
+    "primary": "#ee00ff",
+    "background": "#ffffff",
+    "userBubble": "#ee00ff",
+    "botBubble": "#f0f0f0",
+    "userText": "#ffffff",
+    "botText": "#000000"
+  },
+  "text": {
+    "welcomeMessage": "Welkom! Hoe kan ik je helpen?",
+    "placeholderText": "Type je bericht...",
+    "noResponseText": "Sorry, ik kon je niet verstaan. Kun je het anders formuleren?"
+  },
+  "dimensions": {
+    "chatHeight": 500,
+    "chatWidth": 400,
+    "borderRadius": 8
+  }
+}

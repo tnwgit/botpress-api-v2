@@ -85,29 +85,26 @@
         }
 
         // Functie om chat te starten
-        async function handleStartChat(id, name, webhookId) {
-            try {
-                console.log('Start chat met:', { id, name, webhookId });
-                
-                // Wis bestaande chat data
-                localStorage.removeItem('userId');
-                localStorage.removeItem('userKey');
-                localStorage.removeItem('conversationId');
-                localStorage.removeItem('lastBotMessageId');
-                
-                // Sla nieuwe bot gegevens op
-                localStorage.setItem('botId', id);
-                localStorage.setItem('botName', name);
-                localStorage.setItem('webhookId', webhookId);
-                
-                console.log('Nieuwe gegevens opgeslagen in localStorage');
-                
-                // Ga naar chat pagina
-                window.location.href = '/chat.html';
-            } catch (error) {
-                console.error('Fout bij starten chat:', error);
-                alert('Er is een fout opgetreden bij het starten van de chat');
-            }
+        function handleStartChat(botId, botName, webhookId) {
+            console.log('Start chat met:', { botId, botName, webhookId });
+            
+            // Wis alle bestaande chat data
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userKey');
+            localStorage.removeItem('conversationId');
+            localStorage.removeItem('lastBotMessageId');
+            localStorage.removeItem('botName');
+            localStorage.removeItem('webhookId');
+            
+            // Sla nieuwe bot gegevens op
+            localStorage.setItem('botId', botId);
+            localStorage.setItem('botName', botName);
+            localStorage.setItem('webhookId', webhookId);
+            
+            console.log('Bot gegevens opgeslagen in localStorage');
+            
+            // Ga naar chat pagina
+            window.location.href = `/chat.html?botId=${botId}`;
         }
 
         // Exporteer functies naar window object voor onclick handlers
@@ -120,140 +117,113 @@
     </script>
     <style>
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-
+        
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             padding: 20px;
-            background: #f5f5f5;
+            background-color: #f8f9fa;
+            color: #333;
         }
-
+        
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: white;
+            background-color: #fff;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-
+        
         h1 {
+            margin-bottom: 20px;
             color: #007bff;
-            margin-bottom: 20px;
-            text-align: center;
         }
-
-        .bot-list {
-            margin-bottom: 20px;
-        }
-
-        .bot-item {
-            background: #f8f9fa;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        @media (min-width: 640px) {
-            .bot-item {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-            }
-        }
-
-        .bot-info {
-            flex-grow: 1;
-        }
-
-        .bot-name {
-            font-weight: bold;
-            color: #212529;
-        }
-
-        .bot-id {
-            font-size: 0.9em;
-            color: #6c757d;
-            margin-top: 5px;
-            word-break: break-all;
-        }
-
-        .bot-actions {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-
-        @media (min-width: 640px) {
-            .bot-actions {
-                width: auto;
-            }
-        }
-
-        button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.2s;
-            flex: 1;
-        }
-
-        @media (min-width: 640px) {
-            button {
-                flex: 0 1 auto;
-                min-width: 120px;
-            }
-        }
-
-        .start-chat {
-            background: #007bff;
-            color: white;
-        }
-
-        .start-chat:hover {
-            background: #0056b3;
-        }
-
-        .remove-bot {
-            background: #dc3545;
-            color: white;
-        }
-
-        .remove-bot:hover {
-            background: #c82333;
-        }
-
-        .add-bot-form {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 4px;
-        }
-
-        .form-group {
+        
+        h2 {
+            margin-top: 30px;
             margin-bottom: 15px;
+            font-size: 1.5em;
+            color: #495057;
         }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #212529;
+        
+        input, button {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
         }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 8px;
+        
+        input {
+            margin-right: 10px;
+            width: 200px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        
+        button:hover {
+            background-color: #0069d9;
+        }
+        
+        .bot-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
             border: 1px solid #dee2e6;
             border-radius: 4px;
-            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        
+        .bot-item .bot-name {
+            font-weight: bold;
+        }
+        
+        .bot-item .bot-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .error {
+            color: #dc3545;
+            margin-top: 5px;
+        }
+        
+        .success {
+            color: #28a745;
+            margin-top: 5px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .styling-link {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        .styling-link:hover {
+            background-color: #5a6268;
+            color: white;
+            text-decoration: none;
         }
 
         .empty-state {
@@ -261,20 +231,26 @@
             padding: 20px;
             color: #6c757d;
         }
-
-        .error {
-            color: #dc3545;
-            margin-top: 5px;
-            font-size: 0.9em;
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Chat Assistent Configuratie</h1>
+    <div class="container mt-5">
+        <h1>Botpress API Dashboard</h1>
         
-        <div class="bot-list" id="botList">
-            <!-- Bots worden hier dynamisch toegevoegd -->
+        <button id="addBotBtn" class="btn btn-primary mb-3">Nieuwe Bot Toevoegen</button>
+        
+        <a href="/bot-styling" class="styling-link">Bot Styling Beheren</a>
+        
+        <hr>
+        
+        <h2>Beschikbare Bots</h2>
+        <div id="botList" class="list-group mb-4">
+            <!-- Bots worden hier dynamisch ingeladen -->
+            <div class="text-center" id="loadingBots">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Laden...</span>
+                </div>
+            </div>
         </div>
 
         <div class="add-bot-form">

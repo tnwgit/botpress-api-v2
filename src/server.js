@@ -1,15 +1,35 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const { createClient } = require('@supabase/supabase-js');
 const { Client } = require('@botpress/chat');
 
 const app = express();
+const PORT = process.env.PORT || 3500;
 
+// Supabase configuratie
+const supabaseUrl = 'https://clngtypfotklhyekznzi.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsbmd0eXBmb3RrbGh5ZWt6bnppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNjI5MTIsImV4cCI6MjA1NzczODkxMn0.89eVhGEdDrQzQQ82zo_OizlzJ4K9X3xGIliwSOf2H8A';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Middleware
+app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
-app.use(express.static('public'));
+
+// Zorg ervoor dat de styling-map bestaat
+const STYLING_DIR = path.join(__dirname, '../data/styling');
+if (!fs.existsSync(STYLING_DIR)) {
+    fs.mkdirSync(STYLING_DIR, { recursive: true });
+}
 
 // Root route toont configuratie pagina
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/config.html'));
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// Bot styling route
+app.get('/bot-styling', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/bot-styling.html'));
 });
 
 // Helper functie om webhook ID te extraheren
@@ -38,7 +58,7 @@ app.post('/api/user', async (req, res) => {
         console.log('Geëxtraheerde webhookId:', cleanWebhookId);
 
         const client = new Client({ webhookId: cleanWebhookId });
-        
+
         console.log('Client created, attempting to create user...');
         const response = await client.createUser({
             name: `User-${Date.now()}`,
@@ -66,15 +86,15 @@ app.post('/api/conversation', async (req, res) => {
         }
 
         console.log('Nieuwe conversatie aangemaakt voor gebruiker:', userId);
-        
+
         // Extraheer de webhook ID uit de URL als het een volledige URL is
-        const cleanWebhookId = webhookId.includes('webhook.botpress.cloud/') 
-            ? webhookId.split('webhook.botpress.cloud/')[1] 
+        const cleanWebhookId = webhookId.includes('webhook.botpress.cloud/')
+            ? webhookId.split('webhook.botpress.cloud/')[1]
             : webhookId;
 
         console.log('Gebruik webhook ID:', cleanWebhookId);
-        
-        const client = new Client({ 
+
+        const client = new Client({
             webhookId: cleanWebhookId,
             headers: {
                 'x-user-key': userKey
@@ -144,7 +164,7 @@ app.get('/api/messages/:conversationId', async (req, res) => {
         const userKey = req.headers['x-user-key'];
         const webhookId = req.headers['x-webhook-id'];
         const userId = req.headers['x-user-id'];
-        
+
         if (!userKey || !conversationId || !webhookId || !userId) {
             return res.status(400).json({ error: 'userKey, userId (in headers), webhookId (in headers) en conversationId zijn verplicht' });
         }
@@ -152,7 +172,7 @@ app.get('/api/messages/:conversationId', async (req, res) => {
         const cleanWebhookId = extractWebhookId(webhookId.trim());
         console.log('Fetching messages for conversation:', conversationId);
 
-        const client = new Client({ 
+        const client = new Client({
             webhookId: cleanWebhookId,
             headers: {
                 'x-user-key': userKey
@@ -183,13 +203,98 @@ app.get('/api/messages/:conversationId', async (req, res) => {
     }
 });
 
-// Voor lokale ontwikkeling
-if (process.env.NODE_ENV !== 'production') {
-    const port = process.env.PORT || 3500;
-    app.listen(port, () => {
-        console.log(`Server draait op http://localhost:${port}`);
-    });
-}
+// API endpoint voor het ophalen van alle bots vanuit Supabase
+app.get('/api/bots', async (req, res) => {
+    try {
+        console.log('Ophalen bots van Supabase...');
+        
+        // Probeer eerst bots op te halen uit Supabase
+        const { data, error } = await supabase
+            .from('bots')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-// Voor Vercel
-module.exports = app; 
+        if (error) {
+            console.error('Supabase error:', error);
+            
+            // Als Supabase faalt, val terug op lokaal opgeslagen bots
+            console.log('Vallen terug op lokale bots...');
+            const botsPath = path.join(__dirname, '../data/bots.json');
+            
+            if (!fs.existsSync(botsPath)) {
+                fs.writeFileSync(botsPath, JSON.stringify([
+                    {
+                        id: "1",
+                        name: "MECC Support",
+                        webhookId: "d285e72b-3269-4d44-aebc-e08573bae48f"
+                    },
+                    {
+                        id: "2",
+                        name: "SAAM Restaurant Bot",
+                        webhookId: "3d290364-e60d-478a-8396-aedda6747029"
+                    }
+                ], null, 2));
+            }
+            
+            const localBots = JSON.parse(fs.readFileSync(botsPath, 'utf8'));
+            console.log('Lokale bots opgehaald:', localBots);
+            return res.json(localBots);
+        }
+        
+        console.log('Bots opgehaald uit Supabase:', data);
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching bots:', error);
+        
+        // Bij een algemene fout, val terug op lokale opslag
+        try {
+            const botsPath = path.join(__dirname, '../data/bots.json');
+            if (fs.existsSync(botsPath)) {
+                const localBots = JSON.parse(fs.readFileSync(botsPath, 'utf8'));
+                console.log('Lokale bots opgehaald na error:', localBots);
+                return res.json(localBots);
+            }
+        } catch (fsError) {
+            console.error('Kon ook lokale bots niet ophalen:', fsError);
+        }
+        
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het ophalen van de bots' });
+    }
+});
+
+// Bot styling API endpoints (blijft met lokale bestanden werken)
+app.get('/api/bot-styling/:botId', (req, res) => {
+    try {
+        const { botId } = req.params;
+        const stylingPath = path.join(STYLING_DIR, `${botId}.json`);
+
+        if (!fs.existsSync(stylingPath)) {
+            return res.status(404).json({ error: 'Geen styling gevonden voor deze bot' });
+        }
+
+        const styling = JSON.parse(fs.readFileSync(stylingPath, 'utf8'));
+        res.json(styling);
+    } catch (error) {
+        console.error('Error fetching bot styling:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het ophalen van de bot styling' });
+    }
+});
+
+app.post('/api/bot-styling/:botId', (req, res) => {
+    try {
+        const { botId } = req.params;
+        const styling = req.body;
+        
+        const stylingPath = path.join(STYLING_DIR, `${botId}.json`);
+        fs.writeFileSync(stylingPath, JSON.stringify(styling, null, 2));
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error saving bot styling:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het opslaan van de bot styling' });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`Server draait op http://localhost:${PORT}`);
+}); 

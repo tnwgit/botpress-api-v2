@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Styling Configuratie</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+
+        h2 {
+            margin: 25px 0 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+
+        .bot-selector {
+            margin-bottom: 30px;
+        }
+
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="color"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        input[type="color"] {
+            height: 40px;
+            padding: 2px;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            margin-left: 10px;
+            vertical-align: middle;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background: #0069d9;
+        }
+
+        .preview-container {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-width: 500px;
+        }
+
+        .preview-chat {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            padding: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-body {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        .preview-message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+
+        .preview-message.bot {
+            background: #f0f0f0;
+            align-self: flex-start;
+        }
+
+        .preview-message.user {
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .preview-input {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .preview-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .preview-send {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-button:hover {
+            text-decoration: underline;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid #007bff;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .logo-preview {
+            max-width: 200px;
+            max-height: 100px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            padding: 5px;
+        }
+        
+        .notification {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Terug naar dashboard
+        </a>
+
+        <h1>Bot Styling Configuratie</h1>
+        
+        <div id="notification" style="display: none;" class="notification"></div>
+
+        <div class="bot-selector">
+            <label for="bot-select">Selecteer een bot om aan te passen:</label>
+            <select id="bot-select">
+                <option value="">-- Selecteer een bot --</option>
+                <!-- Bots worden hier dynamisch ingeladen -->
+            </select>
+        </div>
+
+        <div id="styling-form" style="display: none;">
+            <div class="tabs">
+                <div class="tab active" data-tab="general">Algemeen</div>
+                <div class="tab" data-tab="colors">Kleuren</div>
+                <div class="tab" data-tab="text">Teksten</div>
+                <div class="tab" data-tab="dimensions">Afmetingen</div>
+            </div>
+
+            <div id="general" class="tab-content active">
+                <h2>Algemene Instellingen</h2>
+                <div class="form-group">
+                    <label for="bot-title">Bot Titel:</label>
+                    <input type="text" id="bot-title" placeholder="Bijvoorbeeld: MECC Support">
+                </div>
+                <div class="form-group">
+                    <label for="bot-logo">Bot Logo URL:</label>
+                    <input type="text" id="bot-logo" placeholder="https://voorbeeld.com/logo.png">
+                    <div id="logo-preview-container">
+                        <img id="logo-preview" class="logo-preview" style="display: none;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="logo-upload">Of upload een logo:</label>
+                    <input type="file" id="logo-upload" accept="image/*">
+                    <div class="upload-preview-container" style="margin-top: 10px;">
+                        <img id="upload-preview" class="logo-preview" style="display: none;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="font-family">Lettertype:</label>
+                    <select id="font-family">
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Helvetica, sans-serif">Helvetica</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="Verdana, sans-serif">Verdana</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="colors" class="tab-content">
+                <h2>Kleurinstellingen</h2>
+                <div class="form-group">
+                    <label for="primary-color">Primaire Kleur:</label>
+                    <input type="color" id="primary-color" value="#007bff">
+                    <span class="color-preview" id="primary-preview"></span>
+                </div>
+                <div class="form-group">
+                    <label for="background-color">Achtergrondkleur:</label>
+                    <input type="color" id="background-color" value="#ffffff">
+                    <span class="color-preview" id="background-preview"></span>
+                </div>
+                <div class="form-group">
+                    <label for="user-bubble-color">Gebruiker Berichtkleur:</label>
+                    <input type="color" id="user-bubble-color" value="#007bff">
+                    <span class="color-preview" id="user-bubble-preview"></span>
+                </div>
+                <div class="form-group">
+                    <label for="bot-bubble-color">Bot Berichtkleur:</label>
+                    <input type="color" id="bot-bubble-color" value="#f0f0f0">
+                    <span class="color-preview" id="bot-bubble-preview"></span>
+                </div>
+                <div class="form-group">
+                    <label for="user-text-color">Gebruiker Tekstkleur:</label>
+                    <input type="color" id="user-text-color" value="#ffffff">
+                    <span class="color-preview" id="user-text-preview"></span>
+                </div>
+                <div class="form-group">
+                    <label for="bot-text-color">Bot Tekstkleur:</label>
+                    <input type="color" id="bot-text-color" value="#000000">
+                    <span class="color-preview" id="bot-text-preview"></span>
+                </div>
+                <div class="form-group">
+                    <label for="title-text-color">Titel Tekstkleur:</label>
+                    <input type="color" id="title-text-color" value="#007bff">
+                    <span class="color-preview" id="title-text-preview"></span>
+                </div>
+            </div>
+
+            <div id="text" class="tab-content">
+                <h2>Tekstinstellingen</h2>
+                <div class="form-group">
+                    <label for="welcome-message">Welkomstbericht:</label>
+                    <input type="text" id="welcome-message" placeholder="Welkom! Hoe kan ik je helpen?">
+                </div>
+                <div class="form-group">
+                    <label for="placeholder-text">Placeholder Tekst:</label>
+                    <input type="text" id="placeholder-text" placeholder="Type je bericht...">
+                </div>
+                <div class="form-group">
+                    <label for="no-response-text">Geen Antwoord Tekst:</label>
+                    <input type="text" id="no-response-text" placeholder="Sorry, ik kon je niet verstaan. Kun je het anders formuleren?">
+                </div>
+            </div>
+
+            <div id="dimensions" class="tab-content">
+                <h2>Afmetingen</h2>
+                <div class="form-group">
+                    <label for="chat-height">Chat Hoogte (px):</label>
+                    <input type="number" id="chat-height" min="300" max="800" value="500">
+                </div>
+                <div class="form-group">
+                    <label for="chat-width">Chat Breedte (px):</label>
+                    <input type="number" id="chat-width" min="300" max="800" value="400">
+                </div>
+                <div class="form-group">
+                    <label for="border-radius">Afronding Hoeken (px):</label>
+                    <input type="number" id="border-radius" min="0" max="20" value="8">
+                </div>
+            </div>
+
+            <button id="save-button">Opslaan</button>
+            <button id="reset-button">Reset naar Standaard</button>
+        </div>
+
+        <div class="preview-container">
+            <h2>Voorbeeld</h2>
+            <div id="preview-chat" class="preview-chat">
+                <div id="preview-header" class="preview-header">
+                    Chat Titel
+                </div>
+                <div id="preview-body" class="preview-body">
+                    <div class="preview-message bot">
+                        Hallo! Hoe kan ik je vandaag helpen?
+                    </div>
+                    <div class="preview-message user">
+                        Ik heb een vraag over de openingstijden.
+                    </div>
+                    <div class="preview-message bot">
+                        De openingstijden zijn van 9:00 tot 17:00 van maandag tot vrijdag.
+                    </div>
+                </div>
+                <div id="preview-input" class="preview-input">
+                    <input type="text" placeholder="Type je bericht...">
+                    <button id="preview-send" class="preview-send">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variabelen voor de huidige bot
+        let currentBot = null;
+        let allBots = [];
+        
+        // Toon een melding aan de gebruiker
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification ' + type;
+            notification.style.display = 'block';
+            
+            // Verberg de melding na 5 seconden
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Haal alle bots op bij het laden van de pagina
+        async function loadBots() {
+            try {
+                console.log('Ophalen bots...');
+                
+                const response = await fetch('/api/bots');
+                if (!response.ok) throw new Error('Kon bots niet ophalen');
+                
+                allBots = await response.json();
+                
+                const selectElement = document.getElementById('bot-select');
+                selectElement.innerHTML = '<option value="">-- Selecteer een bot --</option>';
+                
+                if (!allBots || allBots.length === 0) {
+                    showNotification('Geen bots gevonden. Voeg eerst een bot toe via het dashboard.', 'error');
+                    return;
+                }
+                
+                allBots.forEach(bot => {
+                    const option = document.createElement('option');
+                    option.value = bot.id;
+                    option.textContent = bot.name;
+                    selectElement.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Fout bij ophalen bots:', error);
+                showNotification('Er is een fout opgetreden bij het ophalen van de bots. Probeer het later opnieuw.', 'error');
+            }
+        }
+        
+        // Laad de styling voor een specifieke bot
+        async function loadBotStyling(botId) {
+            try {
+                console.log('Ophalen styling voor bot:', botId);
+                
+                const response = await fetch(`/api/bot-styling/${botId}`);
+                if (response.status === 404) {
+                    // Geen styling gevonden, gebruik standaard
+                    console.log('Geen styling gevonden, gebruik standaard');
+                    return getDefaultStyling();
+                }
+                
+                if (!response.ok) throw new Error('Kon styling niet ophalen');
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Fout bij ophalen styling:', error);
+                showNotification('Er is een fout opgetreden bij het ophalen van de styling. Standaard styling wordt gebruikt.', 'error');
+                return getDefaultStyling();
+            }
+        }
+        
+        // Standaard styling
+        function getDefaultStyling() {
+            return {
+                general: {
+                    title: '',
+                    logo: '',
+                    fontFamily: 'Arial, sans-serif'
+                },
+                colors: {
+                    primary: '#007bff',
+                    background: '#ffffff',
+                    userBubble: '#007bff',
+                    botBubble: '#f0f0f0',
+                    userText: '#ffffff',
+                    botText: '#000000',
+                    titleText: '#007bff'
+                },
+                text: {
+                    welcomeMessage: 'Welkom! Hoe kan ik je helpen?',
+                    placeholderText: 'Type je bericht...',
+                    noResponseText: 'Sorry, ik kon je niet verstaan. Kun je het anders formuleren?'
+                },
+                dimensions: {
+                    chatHeight: 500,
+                    chatWidth: 400,
+                    borderRadius: 8
+                }
+            };
+        }
+        
+        // Update formulier met styling data
+        function updateForm(styling) {
+            // Algemeen
+            document.getElementById('bot-title').value = styling.general.title;
+            document.getElementById('bot-logo').value = styling.general.logo;
+            document.getElementById('font-family').value = styling.general.fontFamily;
+            
+            // Kleuren
+            document.getElementById('primary-color').value = styling.colors.primary;
+            document.getElementById('background-color').value = styling.colors.background;
+            document.getElementById('user-bubble-color').value = styling.colors.userBubble;
+            document.getElementById('bot-bubble-color').value = styling.colors.botBubble;
+            document.getElementById('user-text-color').value = styling.colors.userText;
+            document.getElementById('bot-text-color').value = styling.colors.botText;
+            document.getElementById('title-text-color').value = styling.colors.titleText || '#007bff';
+            
+            // Tekst
+            document.getElementById('welcome-message').value = styling.text.welcomeMessage;
+            document.getElementById('placeholder-text').value = styling.text.placeholderText;
+            document.getElementById('no-response-text').value = styling.text.noResponseText;
+            
+            // Afmetingen
+            document.getElementById('chat-height').value = styling.dimensions.chatHeight;
+            document.getElementById('chat-width').value = styling.dimensions.chatWidth;
+            document.getElementById('border-radius').value = styling.dimensions.borderRadius;
+            
+            // Logo preview
+            const logoPreview = document.getElementById('logo-preview');
+            if (logoPreview) {
+                if (styling.general.logo) {
+                    logoPreview.src = styling.general.logo;
+                    logoPreview.style.display = 'block';
+                } else {
+                    logoPreview.style.display = 'none';
+                }
+            }
+            
+            // Color previews
+            const updatePreviewColor = (id, color) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.backgroundColor = color;
+                }
+            };
+            
+            updatePreviewColor('primary-preview', styling.colors.primary);
+            updatePreviewColor('background-preview', styling.colors.background);
+            updatePreviewColor('user-bubble-preview', styling.colors.userBubble);
+            updatePreviewColor('bot-bubble-preview', styling.colors.botBubble);
+            updatePreviewColor('user-text-preview', styling.colors.userText);
+            updatePreviewColor('bot-text-preview', styling.colors.botText);
+            updatePreviewColor('title-text-preview', styling.colors.titleText || '#007bff');
+            
+            // Update voorbeeld
+            updatePreview();
+        }
+        
+        // Verzamel alle data uit het formulier
+        function getStylingFromForm() {
+            return {
+                general: {
+                    title: document.getElementById('bot-title').value,
+                    logo: document.getElementById('bot-logo').value,
+                    fontFamily: document.getElementById('font-family').value
+                },
+                colors: {
+                    primary: document.getElementById('primary-color').value,
+                    background: document.getElementById('background-color').value,
+                    userBubble: document.getElementById('user-bubble-color').value,
+                    botBubble: document.getElementById('bot-bubble-color').value,
+                    userText: document.getElementById('user-text-color').value,
+                    botText: document.getElementById('bot-text-color').value,
+                    titleText: document.getElementById('title-text-color').value
+                },
+                text: {
+                    welcomeMessage: document.getElementById('welcome-message').value,
+                    placeholderText: document.getElementById('placeholder-text').value,
+                    noResponseText: document.getElementById('no-response-text').value
+                },
+                dimensions: {
+                    chatHeight: parseInt(document.getElementById('chat-height').value),
+                    chatWidth: parseInt(document.getElementById('chat-width').value),
+                    borderRadius: parseInt(document.getElementById('border-radius').value)
+                }
+            };
+        }
+        
+        // Update het voorbeeld met de huidige styling
+        function updatePreview() {
+            const styling = getStylingFromForm();
+            
+            // Preview elementen
+            const previewChat = document.getElementById('preview-chat');
+            const previewHeader = document.getElementById('preview-header');
+            const previewBody = document.getElementById('preview-body');
+            const previewInput = document.getElementById('preview-input');
+            const previewSend = document.getElementById('preview-send');
+            
+            // Update stijlen
+            previewChat.style.fontFamily = styling.general.fontFamily;
+            previewChat.style.borderRadius = styling.dimensions.borderRadius + 'px';
+            previewChat.style.height = styling.dimensions.chatHeight + 'px';
+            previewChat.style.width = styling.dimensions.chatWidth + 'px';
+            
+            // Update header en titel
+            previewHeader.style.backgroundColor = styling.colors.primary;
+            previewHeader.style.color = styling.colors.titleText || styling.colors.userText;
+            previewHeader.innerText = styling.general.title || 'Chat Titel';
+            
+            previewBody.style.backgroundColor = styling.colors.background;
+            
+            // Update berichten
+            const userMessages = previewBody.querySelectorAll('.preview-message.user');
+            userMessages.forEach(msg => {
+                msg.style.backgroundColor = styling.colors.userBubble;
+                msg.style.color = styling.colors.userText;
+            });
+            
+            const botMessages = previewBody.querySelectorAll('.preview-message.bot');
+            botMessages.forEach(msg => {
+                msg.style.backgroundColor = styling.colors.botBubble;
+                msg.style.color = styling.colors.botText;
+            });
+            
+            // Update input
+            previewInput.style.backgroundColor = styling.colors.background;
+            previewInput.querySelector('input').placeholder = styling.text.placeholderText;
+            
+            // Update verzendknop
+            previewSend.style.backgroundColor = styling.colors.primary;
+            previewSend.style.color = styling.colors.userText;
+        }
+        
+        // Sla de styling op
+        async function saveStyling() {
+            if (!currentBot) {
+                showNotification('Selecteer eerst een bot', 'error');
+                return;
+            }
+            
+            const styling = getStylingFromForm();
+            
+            try {
+                console.log('Opslaan styling voor bot:', currentBot.id);
+                
+                // Toon laad indicator
+                showNotification('Styling wordt opgeslagen...', 'success');
+                
+                const response = await fetch(`/api/bot-styling/${currentBot.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(styling)
+                });
+                
+                if (!response.ok) throw new Error('Kon styling niet opslaan');
+                
+                showNotification('Styling succesvol opgeslagen!', 'success');
+            } catch (error) {
+                console.error('Fout bij opslaan styling:', error);
+                showNotification('Er is een fout opgetreden bij het opslaan van de styling. Probeer het later opnieuw.', 'error');
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Laad alle bots
+            loadBots();
+            
+            // Bot selectie
+            document.getElementById('bot-select').addEventListener('change', async (e) => {
+                const botId = e.target.value;
+                if (!botId) {
+                    document.getElementById('styling-form').style.display = 'none';
+                    currentBot = null;
+                    return;
+                }
+                
+                currentBot = allBots.find(bot => bot.id === botId);
+                
+                const styling = await loadBotStyling(botId);
+                updateForm(styling);
+                document.getElementById('styling-form').style.display = 'block';
+            });
+            
+            // Tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Verwijder active class van alle tabs
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Voeg active class toe aan geklikte tab
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab).classList.add('active');
+                });
+            });
+            
+            // Logo preview
+            document.getElementById('bot-logo').addEventListener('input', (e) => {
+                const logoUrl = e.target.value;
+                const logoPreview = document.getElementById('logo-preview');
+                
+                if (logoUrl) {
+                    logoPreview.src = logoUrl;
+                    logoPreview.style.display = 'block';
+                } else {
+                    logoPreview.style.display = 'none';
+                }
+            });
+            
+            // Logo upload
+            document.getElementById('logo-upload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const logoPreview = document.getElementById('upload-preview');
+                        logoPreview.src = e.target.result;
+                        logoPreview.style.display = 'block';
+                        document.getElementById('bot-logo').value = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Styling veranderingen updaten preview
+            document.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('change', updatePreview);
+                input.addEventListener('input', updatePreview);
+                
+                // Update color previews
+                if (input.type === 'color') {
+                    input.addEventListener('input', function() {
+                        const previewId = this.id + '-preview';
+                        const preview = document.getElementById(previewId);
+                        if (preview) {
+                            preview.style.backgroundColor = this.value;
+                        }
+                    });
+                    // Initial update
+                    const previewId = input.id + '-preview';
+                    const preview = document.getElementById(previewId);
+                    if (preview) {
+                        preview.style.backgroundColor = input.value;
+                    }
+                }
+            });
+            
+            // Opslaan
+            document.getElementById('save-button').addEventListener('click', saveStyling);
+            
+            // Reset
+            document.getElementById('reset-button').addEventListener('click', () => {
+                if (confirm('Weet je zeker dat je alle aanpassingen wilt resetten naar de standaardwaarden?')) {
+                    updateForm(getDefaultStyling());
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

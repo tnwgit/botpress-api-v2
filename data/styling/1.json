@@ -1,0 +1,25 @@
+{
+  "general": {
+    "title": "Mica",
+    "logo": "",
+    "fontFamily": "Arial, sans-serif"
+  },
+  "colors": {
+    "primary": "#ff000d",
+    "background": "#ffffff",
+    "userBubble": "#ff000d",
+    "botBubble": "#f0f0f0",
+    "userText": "#ffffff",
+    "botText": "#000000"
+  },
+  "text": {
+    "welcomeMessage": "Welkom! Hoe kan ik je helpen?",
+    "placeholderText": "Type je bericht...",
+    "noResponseText": "Sorry, ik kon je niet verstaan. Kun je het anders formuleren?"
+  },
+  "dimensions": {
+    "chatHeight": 500,
+    "chatWidth": 400,
+    "borderRadius": 8
+  }
+}

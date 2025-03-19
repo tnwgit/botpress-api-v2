@@ -1,0 +1,12 @@
+[
+  {
+    "id": "1",
+    "name": "MECC Support",
+    "webhookId": "d285e72b-3269-4d44-aebc-e08573bae48f"
+  },
+  {
+    "id": "2",
+    "name": "SAAM Restaurant Bot",
+    "webhookId": "3d290364-e60d-478a-8396-aedda6747029"
+  }
+]

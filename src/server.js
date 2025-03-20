@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
 app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 // Zorg ervoor dat de styling-map bestaat
 const STYLING_DIR = path.join(__dirname, '../data/styling');

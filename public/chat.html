@@ -68,6 +68,8 @@
             height: 150px;
             width: auto;
             max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .chat-container {
@@ -135,6 +137,34 @@
             margin-bottom: 10px;
             display: flex;
             flex-direction: column;
+            position: relative;
+        }
+
+        .welcome-image-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 80%;
+            max-height: 60%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .welcome-image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .welcome-image-container.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .message {
@@ -380,6 +410,9 @@
         </div>
         
         <div class="chat-messages" id="chatMessages">
+            <div class="welcome-image-container" id="welcomeImageContainer">
+                <!-- Welkomstafbeelding wordt hier dynamisch ingevoegd -->
+            </div>
             <!-- Berichten worden hier dynamisch toegevoegd -->
             <div class="typing-indicator" id="typingIndicator">
                 <div class="dot"></div>
@@ -510,18 +543,19 @@
         }
 
         function addMessage(text, isUser = false) {
+            // Verberg de welkomstafbeelding bij het eerste bericht
+            document.getElementById('welcomeImageContainer').classList.add('hidden');
+            
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
             
             if (isUser) {
-                // Gebruikersberichten blijven gewoon tekst
                 messageDiv.textContent = text;
             } else {
-                // Bot berichten worden geparsed als Markdown
                 messageDiv.innerHTML = marked.parse(text, {
-                    breaks: true, // Sta regelafbreking toe met enkele newline
-                    gfm: true,    // GitHub Flavored Markdown
-                    sanitize: true // Voorkom XSS aanvallen
+                    breaks: true,
+                    gfm: true,
+                    sanitize: true
                 });
             }
             
@@ -986,6 +1020,19 @@
                 logoImg.alt = 'Bot Logo';
                 
                 logoContainer.appendChild(logoImg);
+            }
+
+            // Welkomstafbeelding
+            const welcomeImageContainer = document.getElementById('welcomeImageContainer');
+            if (styling.general && styling.general.welcomeImage) {
+                const img = document.createElement('img');
+                img.src = styling.general.welcomeImage;
+                img.alt = 'Welkom';
+                welcomeImageContainer.innerHTML = '';
+                welcomeImageContainer.appendChild(img);
+                welcomeImageContainer.classList.remove('hidden');
+            } else {
+                welcomeImageContainer.classList.add('hidden');
             }
         }
 

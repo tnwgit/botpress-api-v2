@@ -130,7 +130,7 @@
         }
 
         // Functie om een bot te bewerken
-        function editBot(id, name, webhookId) {
+        async function editBot(id, name, webhookId) {
             // Vul de formuliervelden met de huidige waarden
             document.getElementById('botName').value = name;
             document.getElementById('webhookId').value = webhookId;
@@ -148,19 +148,27 @@
                 }
                 
                 try {
-                    // Update de bot in Supabase
-                    const { data, error } = await supabase
-                        .from('bots')
-                        .update({ name: newName, webhook_id: newWebhookId })
-                        .eq('id', id);
-                        
-                    if (error) throw error;
+                    // Update de bot via de API
+                    const response = await fetch(`/api/bots/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: newName,
+                            webhook_id: newWebhookId
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Fout bij bijwerken bot');
+                    }
                     
                     // Reset het formulier
                     document.getElementById('botName').value = '';
                     document.getElementById('webhookId').value = '';
                     addBotButton.textContent = 'Bot Toevoegen';
-                    addBotButton.onclick = addNewBot;
+                    addBotButton.onclick = handleAddBot;
                     
                     // Vernieuw de botlijst
                     await updateBotList();

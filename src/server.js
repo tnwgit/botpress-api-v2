@@ -367,6 +367,38 @@ app.post('/api/bot-styling/:botId', (req, res) => {
     }
 });
 
+// API endpoint voor het bijwerken van een bot
+app.put('/api/bots/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, webhook_id } = req.body;
+
+        if (!id || !name || !webhook_id) {
+            return res.status(400).json({ error: 'id, name en webhook_id zijn verplicht' });
+        }
+
+        console.log('Bijwerken bot:', { id, name, webhook_id });
+
+        const { data, error } = await supabase
+            .from('bots')
+            .update({ name, webhook_id })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase error:', error);
+            return res.status(500).json({ error: 'Er is een fout opgetreden bij het bijwerken van de bot' });
+        }
+
+        console.log('Bot succesvol bijgewerkt:', data);
+        res.json(data);
+    } catch (error) {
+        console.error('Error updating bot:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het bijwerken van de bot' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server draait op http://localhost:${PORT}`);
 }); 

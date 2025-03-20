@@ -7,7 +7,7 @@
   "colors": {
     "primary": "#c8c0c0",
     "background": "#ffffff",
-    "userBubble": "#007bff",
+    "userBubble": "#c8c0c0",
     "botBubble": "#f0f0f0",
     "userText": "#ffffff",
     "botText": "#000000",

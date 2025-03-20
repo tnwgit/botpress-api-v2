@@ -397,21 +397,90 @@
     </div>
 
     <script>
+        // Wis alle chat-gerelateerde data uit localStorage bij het laden van de pagina
+        function clearChatData() {
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userKey');
+            localStorage.removeItem('conversationId');
+            localStorage.removeItem('lastBotMessageId');
+        }
+
         let webhookId = localStorage.getItem('webhookId');
         let botName = localStorage.getItem('botName');
-        let userId = localStorage.getItem('userId');
-        let userKey = localStorage.getItem('userKey');
-        let conversationId = localStorage.getItem('conversationId');
+        let userId = null;
+        let userKey = null;
+        let conversationId = null;
         let lastBotMessageId = null;
         let messageHistory = [];
         let isProcessing = false;
         let chatStyling = null;
 
-        if (!webhookId || !botName) {
-            window.location.href = '/';
-        }
+        // Bij pagina laden
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Pagina geladen, initialiseren chat...');
+            
+            // Wis oude chat data
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userKey');
+            localStorage.removeItem('conversationId');
+            localStorage.removeItem('lastBotMessageId');
+            
+            // Reset lokale variabelen
+            userId = null;
+            userKey = null;
+            conversationId = null;
+            lastBotMessageId = null;
+            
+            // Controleer URL parameters voor botId
+            const urlParams = new URLSearchParams(window.location.search);
+            const botIdFromUrl = urlParams.get('botId');
+            
+            if (botIdFromUrl) {
+                // Als we een botId in de URL hebben, haal dan de bot gegevens op
+                try {
+                    const response = await fetch('/api/bots');
+                    const bots = await response.json();
+                    const selectedBot = bots.find(bot => bot.id === botIdFromUrl);
+                    
+                    if (selectedBot) {
+                        // Update localStorage met de juiste bot gegevens
+                        localStorage.setItem('botId', selectedBot.id);
+                        localStorage.setItem('botName', selectedBot.name);
+                        localStorage.setItem('webhookId', selectedBot.webhook_id);
+                        
+                        // Update lokale variabelen
+                        webhookId = selectedBot.webhook_id;
+                        botName = selectedBot.name;
+                    }
+                } catch (error) {
+                    console.error('Fout bij ophalen bot gegevens:', error);
+                }
+            }
 
-        document.getElementById('botName').textContent = `Chat met ${botName}`;
+            if (!webhookId || !botName) {
+                window.location.href = '/';
+                return;
+            }
+
+            document.getElementById('botName').textContent = `Chat met ${botName}`;
+            
+            try {
+                // Laad eerst de styling voor de huidige bot
+                console.log('Laden bot styling...');
+                const styling = await loadBotStyling();
+                if (styling) {
+                    console.log('Bot styling geladen, toepassen...');
+                    applyBotStyling(styling);
+                }
+                
+                // Start daarna een nieuwe chat sessie
+                console.log('Initialiseren chat sessie...');
+                await initializeChat();
+            } catch (error) {
+                console.error('Fout bij initialisatie:', error);
+            }
+        });
+
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
@@ -765,8 +834,17 @@
                 chatMessages.removeChild(chatMessages.firstChild);
             }
             
-            // Initialiseer nieuwe chat sessie
             try {
+                // Laad en pas de styling opnieuw toe
+                console.log('Opnieuw laden van bot styling...');
+                const styling = await loadBotStyling();
+                if (styling) {
+                    console.log('Bot styling opnieuw toepassen...');
+                    applyBotStyling(styling);
+                }
+                
+                // Initialiseer nieuwe chat sessie
+                console.log('Initialiseren nieuwe chat sessie...');
                 const success = await initializeChat();
                 if (success) {
                     addMessage('Nieuwe chat sessie gestart.');
@@ -805,9 +883,6 @@
                 
                 const styling = await response.json();
                 console.log('Styling succesvol opgehaald:', styling);
-                
-                // Pas styling direct toe
-                applyBotStyling(styling);
                 
                 return styling;
             } catch (error) {
@@ -905,43 +980,6 @@
                 logoContainer.appendChild(logoImg);
             }
         }
-
-        // Bij pagina laden
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log('Pagina geladen, initialiseren chat...');
-            
-            // Herstel lastBotMessageId van localStorage
-            const savedLastBotMessageId = localStorage.getItem('lastBotMessageId');
-            if (savedLastBotMessageId) {
-                console.log('Herstellen van lastBotMessageId uit localStorage:', savedLastBotMessageId);
-                lastBotMessageId = savedLastBotMessageId;
-            }
-            
-            // Controleer of de botId bestaat in localStorage
-            const botId = localStorage.getItem('botId');
-            console.log('BotId in localStorage:', botId);
-            
-            // Als het botId ontbreekt, probeer het uit de URL te halen
-            if (!botId && window.location.search) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlBotId = urlParams.get('botId');
-                if (urlBotId) {
-                    console.log('BotId uit URL parameters:', urlBotId);
-                    localStorage.setItem('botId', urlBotId);
-                }
-            }
-            
-            // Laad altijd de bot styling
-            const styling = await loadBotStyling();
-            
-            // Controleer bestaande chatgegevens
-            if (userId && userKey && conversationId) {
-                console.log('Bestaande chat gegevens gevonden');
-            } else {
-                console.log('Geen chat gegevens gevonden, initialiseren...');
-                await initializeChat();
-            }
-        });
 
         // Focus op input bij laden
         window.addEventListener('load', () => {

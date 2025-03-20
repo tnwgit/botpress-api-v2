@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Assistent Configuratie</title>
+    <title>Chat Assistent Dashboard</title>
     <script type="module">
         import { getBots, addBot, deleteBot } from './supabase.js';
 
@@ -25,28 +25,27 @@
                     botItem.innerHTML = `
                         <div class="bot-info">
                             <h3>${bot.name}</h3>
-                            <p>Webhook ID: ${bot.webhook_id}</p>
                         </div>
                         <div class="bot-actions">
-                            <button class="action-button edit-bot" onclick="editBot('${bot.id}', '${bot.name}', '${bot.webhook_id}')">
+                            <button class="action-button edit-bot" onclick="editBot('${bot.id}', '${bot.name}', '${bot.webhook_id}')" title="Bot bewerken">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                                 </svg>
                             </button>
-                            <button class="action-button start-chat" onclick="handleStartChat('${bot.id}', '${bot.name}', '${bot.webhook_id}')">
+                            <button class="action-button start-chat" onclick="handleStartChat('${bot.id}', '${bot.name}', '${bot.webhook_id}')" title="Start een gesprek">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                                 </svg>
                                 Start Chat
                             </button>
-                            <a href="/bot-styling.html?botId=${bot.id}" class="styling-link">
+                            <a href="/bot-styling.html?botId=${bot.id}" class="styling-link" title="Pas de styling aan">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="12" cy="12" r="3"></circle>
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                                 </svg>
                                 Styling
                             </a>
-                            <button class="action-button delete-bot" onclick="deleteBot('${bot.id}')">
+                            <button class="action-button delete-bot" onclick="deleteBot('${bot.id}')" title="Bot verwijderen">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18"></path>
                                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
@@ -130,7 +129,53 @@
             window.location.href = `/chat.html?botId=${botId}`;
         }
 
+        // Functie om een bot te bewerken
+        function editBot(id, name, webhookId) {
+            // Vul de formuliervelden met de huidige waarden
+            document.getElementById('botName').value = name;
+            document.getElementById('webhookId').value = webhookId;
+            
+            // Verberg de 'Bot Toevoegen' knop en toon een 'Wijzigingen Opslaan' knop
+            const addBotButton = document.querySelector('.form-group button.start-chat');
+            addBotButton.textContent = 'Wijzigingen Opslaan';
+            addBotButton.onclick = async () => {
+                const newName = document.getElementById('botName').value.trim();
+                const newWebhookId = document.getElementById('webhookId').value.trim();
+                
+                if (!newName || !newWebhookId) {
+                    alert('Vul alle velden in');
+                    return;
+                }
+                
+                try {
+                    // Update de bot in Supabase
+                    const { data, error } = await supabase
+                        .from('bots')
+                        .update({ name: newName, webhook_id: newWebhookId })
+                        .eq('id', id);
+                        
+                    if (error) throw error;
+                    
+                    // Reset het formulier
+                    document.getElementById('botName').value = '';
+                    document.getElementById('webhookId').value = '';
+                    addBotButton.textContent = 'Bot Toevoegen';
+                    addBotButton.onclick = addNewBot;
+                    
+                    // Vernieuw de botlijst
+                    await updateBotList();
+                } catch (error) {
+                    console.error('Fout bij bijwerken bot:', error);
+                    alert('Er is een fout opgetreden bij het bijwerken van de bot');
+                }
+            };
+            
+            // Scroll naar het formulier
+            document.querySelector('.add-bot-form').scrollIntoView({ behavior: 'smooth' });
+        }
+
         // Exporteer functies naar window object voor onclick handlers
+        window.editBot = editBot;
         window.addNewBot = handleAddBot;
         window.removeBot = handleRemoveBot;
         window.handleStartChat = handleStartChat;
@@ -370,7 +415,7 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1>Botpress API Dashboard</h1>
+        <h1>Chat Assistent Dashboard</h1>
         
         <h2>Beschikbare Bots</h2>
         <div id="botList" class="list-group mb-4">

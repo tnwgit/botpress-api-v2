@@ -520,6 +520,48 @@
                 justify-content: center;
             }
         }
+
+        .suggestion-input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .suggestion-input-group input {
+            flex: 1;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .suggestion-item input {
+            flex: 1;
+        }
+
+        .suggestion-item button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .add-suggestion-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -652,6 +694,35 @@
                         <div class="color-preview" id="title-text-color-preview"></div>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Suggestiepanel achtergrond</label>
+                    <div class="color-input">
+                        <input type="color" id="suggestions-panel-bg" onchange="updatePreviewColor('suggestions-panel-preview', this.value)">
+                        <input type="text" id="suggestions-panel-bg-text" oninput="updateColorFromText(this, 'suggestions-panel-bg')">
+                        <div class="color-preview" id="suggestions-panel-preview"></div>
+                    </div>
+
+                    <label>Suggestieknop achtergrond</label>
+                    <div class="color-input">
+                        <input type="color" id="suggestion-button-bg" onchange="updatePreviewColor('suggestion-button-bg-preview', this.value)">
+                        <input type="text" id="suggestion-button-bg-text" oninput="updateColorFromText(this, 'suggestion-button-bg')">
+                        <div class="color-preview" id="suggestion-button-bg-preview"></div>
+                    </div>
+
+                    <label>Suggestieknop tekst</label>
+                    <div class="color-input">
+                        <input type="color" id="suggestion-text-color" onchange="updatePreviewColor('suggestion-text-preview', this.value)">
+                        <input type="text" id="suggestion-text-color-text" oninput="updateColorFromText(this, 'suggestion-text-color')">
+                        <div class="color-preview" id="suggestion-text-preview"></div>
+                    </div>
+
+                    <label>Suggestieknop rand</label>
+                    <div class="color-input">
+                        <input type="color" id="suggestion-border-color" onchange="updatePreviewColor('suggestion-border-preview', this.value)">
+                        <input type="text" id="suggestion-border-color-text" oninput="updateColorFromText(this, 'suggestion-border-color')">
+                        <div class="color-preview" id="suggestion-border-preview"></div>
+                    </div>
+                </div>
             </div>
 
             <div id="text" class="tab-content">
@@ -683,6 +754,20 @@
                 <div class="form-group">
                     <label for="border-radius">Afronding Hoeken (px):</label>
                     <input type="number" id="border-radius" min="0" max="20" value="8">
+                </div>
+            </div>
+
+            <div class="styling-section">
+                <h3>Vraagsuggesties</h3>
+                <div class="form-group">
+                    <label>Suggesties</label>
+                    <div id="suggestions-container">
+                        <!-- Suggesties worden hier dynamisch toegevoegd -->
+                    </div>
+                    <div class="suggestion-input-group">
+                        <input type="text" id="new-suggestion" placeholder="Voer een nieuwe suggestie in...">
+                        <button onclick="addSuggestion()" class="add-suggestion-btn">Toevoegen</button>
+                    </div>
                 </div>
             </div>
 
@@ -722,7 +807,6 @@
     </div>
 
     <script>
-        // Variabelen voor de huidige bot
         let currentBot = null;
         let allBots = [];
         
@@ -801,7 +885,40 @@
             }
         }
         
-        // Standaard styling
+        // Functies voor suggesties
+        function addSuggestion() {
+            const input = document.getElementById('new-suggestion');
+            const text = input.value.trim();
+            
+            if (text) {
+                const container = document.getElementById('suggestions-container');
+                const suggestionDiv = createSuggestionElement(text);
+                container.appendChild(suggestionDiv);
+                input.value = '';
+            }
+        }
+
+        function createSuggestionElement(text) {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = text;
+            input.className = 'suggestion-text';
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '×';
+            deleteBtn.onclick = function() {
+                div.remove();
+            };
+            
+            div.appendChild(input);
+            div.appendChild(deleteBtn);
+            return div;
+        }
+
+        // Functie om de standaard styling op te halen
         function getDefaultStyling() {
             return {
                 general: {
@@ -817,7 +934,11 @@
                     botBubble: '#f0f0f0',
                     userText: '#ffffff',
                     botText: '#000000',
-                    titleText: '#000000'
+                    titleText: '#000000',
+                    suggestionsPanelBg: '#ffffff',
+                    suggestionButtonBg: '#f8f9fa',
+                    suggestionTextColor: '#212529',
+                    suggestionBorderColor: '#dee2e6'
                 },
                 text: {
                     welcomeMessage: 'Welkom! Hoe kan ik je helpen?',
@@ -828,7 +949,8 @@
                     chatHeight: '500',
                     chatWidth: '400',
                     borderRadius: '8'
-                }
+                },
+                suggestions: []
             };
         }
         
@@ -893,13 +1015,37 @@
             updatePreviewColor('bot-text-preview', styling.colors.botText);
             updatePreviewColor('title-text-preview', styling.colors.titleText);
             
+            // Update suggestie kleuren
+            document.getElementById('suggestions-panel-bg').value = styling.colors.suggestionsPanelBg || '#ffffff';
+            document.getElementById('suggestions-panel-bg-text').value = styling.colors.suggestionsPanelBg || '#ffffff';
+            document.getElementById('suggestion-button-bg').value = styling.colors.suggestionButtonBg || '#f8f9fa';
+            document.getElementById('suggestion-button-bg-text').value = styling.colors.suggestionButtonBg || '#f8f9fa';
+            document.getElementById('suggestion-text-color').value = styling.colors.suggestionTextColor || '#212529';
+            document.getElementById('suggestion-text-color-text').value = styling.colors.suggestionTextColor || '#212529';
+            document.getElementById('suggestion-border-color').value = styling.colors.suggestionBorderColor || '#dee2e6';
+            document.getElementById('suggestion-border-color-text').value = styling.colors.suggestionBorderColor || '#dee2e6';
+            
+            updatePreviewColor('suggestions-panel-preview', styling.colors.suggestionsPanelBg || '#ffffff');
+            updatePreviewColor('suggestion-button-bg-preview', styling.colors.suggestionButtonBg || '#f8f9fa');
+            updatePreviewColor('suggestion-text-preview', styling.colors.suggestionTextColor || '#212529');
+            updatePreviewColor('suggestion-border-preview', styling.colors.suggestionBorderColor || '#dee2e6');
+            
+            // Vul suggesties
+            const suggestionsContainer = document.getElementById('suggestions-container');
+            suggestionsContainer.innerHTML = '';
+            if (styling.suggestions && Array.isArray(styling.suggestions)) {
+                styling.suggestions.forEach(suggestion => {
+                    suggestionsContainer.appendChild(createSuggestionElement(suggestion));
+                });
+            }
+            
             // Update voorbeeld
             updatePreview();
         }
         
         // Verzamel alle data uit het formulier
         function getStylingFromForm() {
-            return {
+            const styling = {
                 general: {
                     title: document.getElementById('bot-title').value,
                     logo: document.getElementById('bot-logo').value,
@@ -913,7 +1059,11 @@
                     botBubble: document.getElementById('bot-bubble-color').value,
                     userText: document.getElementById('user-text-color').value,
                     botText: document.getElementById('bot-text-color').value,
-                    titleText: document.getElementById('title-text-color').value
+                    titleText: document.getElementById('title-text-color').value,
+                    suggestionsPanelBg: document.getElementById('suggestions-panel-bg').value,
+                    suggestionButtonBg: document.getElementById('suggestion-button-bg').value,
+                    suggestionTextColor: document.getElementById('suggestion-text-color').value,
+                    suggestionBorderColor: document.getElementById('suggestion-border-color').value
                 },
                 text: {
                     welcomeMessage: document.getElementById('welcome-message').value,
@@ -924,8 +1074,13 @@
                     chatHeight: document.getElementById('chat-height').value,
                     chatWidth: document.getElementById('chat-width').value,
                     borderRadius: document.getElementById('border-radius').value
-                }
+                },
+                suggestions: Array.from(document.getElementsByClassName('suggestion-text'))
+                    .map(input => input.value.trim())
+                    .filter(text => text !== '')
             };
+            
+            return styling;
         }
         
         // Update het voorbeeld met de huidige styling

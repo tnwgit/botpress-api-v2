@@ -14,7 +14,9 @@
 
         html, body {
             height: 100%;
-            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto; /* Sta verticale scrolling toe */
         }
 
         body {
@@ -24,6 +26,7 @@
             display: flex;
             flex-direction: column;
             padding: 20px;
+            min-height: 100vh;
         }
 
         .back-to-admin {
@@ -77,8 +80,10 @@
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
-            height: calc(100vh - 100px);
-            overflow: hidden;
+            flex: 1;
+            min-height: 600px; /* Minimale hoogte voor desktop */
+            height: calc(100vh - 180px); /* Laat ruimte voor padding en logo */
+            position: relative;
         }
 
         .chat-main {
@@ -86,7 +91,11 @@
             min-width: 0;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            height: 100%;
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .chat-header {
@@ -139,14 +148,11 @@
             flex: 1;
             overflow-y: auto;
             padding: 10px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 0;
             position: relative;
             min-height: 200px;
+            display: flex;
+            flex-direction: column;
         }
 
         .welcome-image-container {
@@ -182,18 +188,24 @@
             padding: 10px;
             border-radius: 8px;
             word-wrap: break-word;
+            display: inline-block;
+            width: fit-content;
         }
 
         .message.user {
             background: #007bff;
             color: white;
-            align-self: flex-end;
+            margin-left: auto;
+            float: right;
+            clear: both;
         }
 
         .message.bot {
             background: #f8f9fa;
             color: #212529;
-            align-self: flex-start;
+            margin-right: auto;
+            float: left;
+            clear: both;
         }
 
         .message.bot p {
@@ -265,14 +277,17 @@
         }
 
         .chat-input {
-            display: flex;
-            gap: 10px;
+            position: sticky;
+            bottom: 0;
+            width: 100%;
             background: white;
             padding: 15px;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-            position: relative;
-            z-index: 2;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
         }
 
         #messageInput {
@@ -285,10 +300,10 @@
             height: 40px;
             min-height: 40px;
             max-height: 120px;
-            text-indent: 0;
-            text-align: left;
-            transition: border-color 0.2s;
+            line-height: 1.4;
             overflow-y: auto;
+            display: block;
+            width: 100%;
         }
 
         #messageInput:focus {
@@ -366,11 +381,40 @@
         @media (max-width: 900px) {
             .chat-container {
                 flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 160px);
+                padding: 10px;
+                gap: 10px;
+            }
+
+            .chat-main {
+                flex: 1;
+                height: calc(70vh - 60px);
+                min-height: 400px;
+                width: 100% !important;
+            }
+
+            .chat-messages {
+                flex: 1;
+                min-height: 200px;
+                max-height: none;
             }
 
             .suggestions-panel {
                 width: 100%;
                 max-width: none;
+                order: 1;
+                position: relative;
+                margin-top: 10px;
+                max-height: calc(30vh - 60px);
+            }
+
+            .bot-logo {
+                margin-bottom: 10px;
+            }
+
+            .bot-logo img {
+                height: 80px;
             }
         }
 
@@ -379,14 +423,36 @@
                 padding: 5px;
             }
 
-            .back-to-admin {
-                margin-bottom: 10px;
-                font-size: 0.85em;
-                padding: 6px 10px;
+            .chat-container {
+                padding: 5px;
+                min-height: calc(100vh - 140px);
             }
 
-            .chat-container {
-                height: calc(100vh - 70px);
+            .chat-main {
+                height: calc(75vh - 60px);
+                min-height: 300px;
+            }
+
+            .suggestions-panel {
+                max-height: calc(25vh - 60px);
+            }
+
+            .message {
+                max-width: 90%;
+            }
+
+            .chat-input {
+                padding: 10px;
+            }
+
+            #messageInput {
+                font-size: 16px;
+                padding: 8px;
+            }
+
+            #sendButton {
+                width: 36px;
+                height: 36px;
             }
         }
 
@@ -400,6 +466,8 @@
             flex-direction: column;
             gap: 10px;
             height: fit-content;
+            max-height: 100%; /* Maximale hoogte gelijk aan container */
+            overflow-y: auto;
         }
 
         .suggestion-button {
@@ -1049,6 +1117,12 @@
                     container.style.borderRadius = `${borderRadius}px`;
                     chatHeader.style.borderRadius = `${borderRadius}px ${borderRadius}px 0 0`;
                     chatInput.style.borderRadius = `0 0 ${borderRadius}px ${borderRadius}px`;
+                }
+
+                // Pas de breedte toe
+                if (styling.dimensions.chatWidth) {
+                    const chatMain = document.querySelector('.chat-main');
+                    chatMain.style.width = `${styling.dimensions.chatWidth}px`;
                 }
             }
             

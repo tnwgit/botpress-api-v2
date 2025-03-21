@@ -25,12 +25,13 @@
   },
   "dimensions": {
     "chatHeight": "500",
-    "chatWidth": "400",
+    "chatWidth": "600",
     "borderRadius": "8"
   },
   "suggestions": [
     "Wat kost parkeren?",
     "Wat kan ik vega eten bij Saam?",
-    "Quien eres?"
+    "Quien eres?",
+    "Heb je vergaderruimte voor 15 personen en wat kost dat?"
   ]
 }

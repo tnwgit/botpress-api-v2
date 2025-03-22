@@ -599,9 +599,9 @@
                     <input type="text" id="bot-title" placeholder="Voer een titel in voor de assistent">
                 </div>
                 <div class="form-group">
-                    <label for="bot-logo">Assistent Logo URL:</label>
+                    <label for="logo-url">Assistent Logo URL:</label>
                     <div class="input-with-upload">
-                        <input type="text" id="bot-logo" placeholder="Voer een URL in voor het logo">
+                        <input type="text" id="logo-url" placeholder="Voer een URL in voor het logo">
                         <input type="file" id="logo-upload" accept="image/*" style="display: none;">
                         <button type="button" onclick="document.getElementById('logo-upload').click()" class="upload-button">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -615,9 +615,9 @@
                     <img id="logo-preview" class="image-preview" style="display: none;" alt="Logo preview">
                 </div>
                 <div class="form-group">
-                    <label for="welcome-image">Welkomstafbeelding URL:</label>
+                    <label for="welcome-image-url">Welkomstafbeelding URL:</label>
                     <div class="input-with-upload">
-                        <input type="text" id="welcome-image" placeholder="Voer een URL in voor de welkomstafbeelding">
+                        <input type="text" id="welcome-image-url" placeholder="Voer een URL in voor de welkomstafbeelding">
                         <input type="file" id="welcome-image-upload" accept="image/*" style="display: none;">
                         <button type="button" onclick="document.getElementById('welcome-image-upload').click()" class="upload-button">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -754,6 +754,10 @@
                 <div class="form-group">
                     <label for="border-radius">Afronding Hoeken (px):</label>
                     <input type="number" id="border-radius" min="0" max="20" value="8">
+                </div>
+                <div class="form-group">
+                    <label for="show-suggestions-panel">Toon Suggestiepanel:</label>
+                    <input type="checkbox" id="show-suggestions-panel">
                 </div>
             </div>
 
@@ -948,7 +952,8 @@
                 dimensions: {
                     chatHeight: '500',
                     chatWidth: '400',
-                    borderRadius: '8'
+                    borderRadius: '8',
+                    showSuggestionsPanel: true
                 },
                 suggestions: []
             };
@@ -958,8 +963,8 @@
         function updateForm(styling) {
             // General
             document.getElementById('bot-title').value = styling.general.title;
-            document.getElementById('bot-logo').value = styling.general.logo;
-            document.getElementById('welcome-image').value = styling.general.welcomeImage || '';
+            document.getElementById('logo-url').value = styling.general.logo;
+            document.getElementById('welcome-image-url').value = styling.general.welcomeImage || '';
             document.getElementById('font-family').value = styling.general.fontFamily;
             
             // Update logo preview
@@ -998,6 +1003,7 @@
             document.getElementById('chat-height').value = styling.dimensions.chatHeight;
             document.getElementById('chat-width').value = styling.dimensions.chatWidth;
             document.getElementById('border-radius').value = styling.dimensions.borderRadius;
+            document.getElementById('show-suggestions-panel').checked = styling.dimensions.showSuggestionsPanel;
             
             // Color previews
             const updatePreviewColor = (id, color) => {
@@ -1043,13 +1049,13 @@
             updatePreview();
         }
         
-        // Verzamel alle data uit het formulier
-        function getStylingFromForm() {
+        // Verzamel alle styling instellingen uit het formulier
+        function gatherStylingFromForm() {
             const styling = {
                 general: {
                     title: document.getElementById('bot-title').value,
-                    logo: document.getElementById('bot-logo').value,
-                    welcomeImage: document.getElementById('welcome-image').value,
+                    logo: document.getElementById('logo-url').value,
+                    welcomeImage: document.getElementById('welcome-image-url').value,
                     fontFamily: document.getElementById('font-family').value
                 },
                 colors: {
@@ -1073,11 +1079,15 @@
                 dimensions: {
                     chatHeight: document.getElementById('chat-height').value,
                     chatWidth: document.getElementById('chat-width').value,
-                    borderRadius: document.getElementById('border-radius').value
+                    borderRadius: document.getElementById('border-radius').value,
+                    showSuggestionsPanel: document.getElementById('show-suggestions-panel').checked
                 },
-                suggestions: Array.from(document.getElementsByClassName('suggestion-text'))
-                    .map(input => input.value.trim())
-                    .filter(text => text !== '')
+                suggestions: Array.from(document.querySelectorAll('.suggestion-item')).map(item => {
+                    const text = item.querySelector('input').value.trim();
+                    console.log(`Suggestie opgehaald uit form: ${text}`);
+                    // Sla suggesties op als directe strings in plaats van objecten met een text eigenschap
+                    return text;
+                }).filter(text => text !== '') // Verwijder lege suggesties
             };
             
             return styling;
@@ -1085,7 +1095,7 @@
         
         // Update het voorbeeld met de huidige styling
         function updatePreview() {
-            const styling = getStylingFromForm();
+            const styling = gatherStylingFromForm();
             
             // Preview elementen
             const previewChat = document.getElementById('preview-chat');
@@ -1141,7 +1151,7 @@
                 console.log('Styling opslaan voor bot:', currentBot.id);
                 
                 // Haal styling data op uit formulier
-                const styling = getStylingFromForm();
+                const styling = gatherStylingFromForm();
                 console.log('Styling data om op te slaan:', styling);
                 
                 // Verstuur naar server
@@ -1204,12 +1214,12 @@
             
             // Logo upload
             document.getElementById('logo-upload').addEventListener('change', (e) => {
-                handleImageUpload(e, 'bot-logo', 'logo-preview');
+                handleImageUpload(e, 'logo-url', 'logo-preview');
             });
 
             // Welkomstafbeelding upload
             document.getElementById('welcome-image-upload').addEventListener('change', (e) => {
-                handleImageUpload(e, 'welcome-image', 'welcome-image-preview');
+                handleImageUpload(e, 'welcome-image-url', 'welcome-image-preview');
             });
 
             // Functie voor het verwerken van afbeelding uploads

@@ -276,7 +276,7 @@ app.get('/api/bots', async (req, res) => {
 });
 
 // Bot styling API endpoints (blijft met lokale bestanden werken)
-app.get('/api/bot-styling/:botId', (req, res) => {
+app.get('/api/bot-styling/:botId', async (req, res) => {
     try {
         const { botId } = req.params;
         
@@ -286,13 +286,48 @@ app.get('/api/bot-styling/:botId', (req, res) => {
         
         console.log(`Ophalen styling voor bot ${botId}...`);
         
-        // Controleer eerst of we de styling in memory hebben (voor Vercel)
+        // Eerst proberen we de styling uit Supabase te halen
+        try {
+            console.log(`Proberen styling op te halen uit Supabase voor bot ${botId}...`);
+            const { data: supabaseData, error: supabaseError } = await supabase
+                .from('bot_styling')
+                .select('*')
+                .eq('bot_id', botId)
+                .single();
+
+            if (supabaseError && supabaseError.code !== 'PGRST116') { // PGRST116 is "not found"
+                console.error(`Supabase error bij ophalen styling: ${supabaseError.message}`);
+            }
+
+            if (supabaseData) {
+                console.log(`Styling succesvol opgehaald uit Supabase voor bot ${botId}`);
+                
+                // Debug info uitgebreidere logging
+                if (supabaseData.styling) {
+                    if (supabaseData.styling.suggestions && Array.isArray(supabaseData.styling.suggestions)) {
+                        console.log(`Aantal suggesties in Supabase data: ${supabaseData.styling.suggestions.length}`);
+                        console.log('Suggesties opgehaald uit Supabase:', JSON.stringify(supabaseData.styling.suggestions));
+                    } else {
+                        console.log('Geen sugggesties array gevonden in Supabase data');
+                    }
+                }
+                
+                console.log('Volledige styling data uit Supabase:', JSON.stringify(supabaseData.styling, null, 2));
+                return res.json(supabaseData.styling);
+            } else {
+                console.log(`Geen styling gevonden in Supabase voor bot ${botId}, val terug op lokale opslag`);
+            }
+        } catch (supabaseError) {
+            console.error(`Fout bij ophalen styling uit Supabase: ${supabaseError.message}`);
+        }
+        
+        // Controleer vervolgens of we de styling in memory hebben (voor Vercel)
         if (isVercelProduction && stylingMemoryStorage.has(botId)) {
             console.log(`Styling voor bot ${botId} gevonden in memory storage`);
             return res.json(stylingMemoryStorage.get(botId));
         }
         
-        // Anders proberen we het uit het bestandssysteem te lezen
+        // Als laatste optie proberen we het uit het bestandssysteem te lezen
         const stylingPath = path.join(STYLING_DIR, `${botId}.json`);
         console.log(`Proberen styling te lezen van: ${stylingPath}`);
         
@@ -310,7 +345,7 @@ app.get('/api/bot-styling/:botId', (req, res) => {
             }
             
             console.log(`Styling succesvol opgehaald voor bot ${botId}`);
-            res.json(styling);
+            return res.json(styling);
         } catch (readError) {
             console.error(`Fout bij lezen styling bestand: ${readError.message}`);
             return res.status(500).json({ error: 'Kon styling bestand niet lezen' });
@@ -321,7 +356,7 @@ app.get('/api/bot-styling/:botId', (req, res) => {
     }
 });
 
-app.post('/api/bot-styling/:botId', (req, res) => {
+app.post('/api/bot-styling/:botId', async (req, res) => {
     try {
         const { botId } = req.params;
         const styling = req.body;
@@ -338,7 +373,48 @@ app.post('/api/bot-styling/:botId', (req, res) => {
         
         console.log(`Opslaan styling voor bot ${botId}...`);
         
-        // Als we in Vercel productie draaien, sla dan op in memory
+        // Probeer eerst op te slaan in Supabase
+        try {
+            console.log(`Probeer styling op te slaan in Supabase voor bot ${botId}...`);
+            
+            // Controleer eerst of er al een record bestaat voor deze bot
+            const { data: existingData, error: checkError } = await supabase
+                .from('bot_styling')
+                .select('*')
+                .eq('bot_id', botId)
+                .single();
+                
+            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found"
+                console.error(`Supabase error bij controleren bestaande styling: ${checkError.message}`);
+            }
+            
+            let supabaseResult;
+            
+            if (existingData) {
+                // Update bestaande record
+                console.log(`Bestaande styling gevonden in Supabase voor bot ${botId}, record bijwerken...`);
+                supabaseResult = await supabase
+                    .from('bot_styling')
+                    .update({ styling: styling, updated_at: new Date() })
+                    .eq('bot_id', botId);
+            } else {
+                // Voeg nieuw record toe
+                console.log(`Geen bestaande styling gevonden in Supabase voor bot ${botId}, nieuwe record aanmaken...`);
+                supabaseResult = await supabase
+                    .from('bot_styling')
+                    .insert({ bot_id: botId, styling: styling });
+            }
+            
+            if (supabaseResult.error) {
+                console.error(`Fout bij opslaan styling in Supabase: ${supabaseResult.error.message}`);
+            } else {
+                console.log(`Styling succesvol opgeslagen in Supabase voor bot ${botId}`);
+            }
+        } catch (supabaseError) {
+            console.error(`Onverwachte fout bij opslaan styling in Supabase: ${supabaseError.message}`);
+        }
+        
+        // Als we in Vercel productie draaien, sla dan op in memory als backup
         if (isVercelProduction) {
             console.log(`Styling opslaan in memory storage voor bot ${botId}`);
             stylingMemoryStorage.set(botId, styling);

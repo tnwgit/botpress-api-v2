@@ -123,6 +123,28 @@
             const loginForm = document.getElementById('loginForm');
             const errorMessage = document.getElementById('errorMessage');
             
+            // Maak debug div aan
+            const debugDiv = document.createElement('div');
+            debugDiv.style.marginTop = '20px';
+            debugDiv.style.padding = '10px';
+            debugDiv.style.border = '1px solid #ddd';
+            debugDiv.style.borderRadius = '4px';
+            debugDiv.style.fontFamily = 'monospace';
+            debugDiv.style.fontSize = '12px';
+            debugDiv.style.maxHeight = '150px';
+            debugDiv.style.overflow = 'auto';
+            document.querySelector('.login-box').appendChild(debugDiv);
+            
+            function logDebug(message) {
+                const logLine = document.createElement('div');
+                logLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                debugDiv.appendChild(logLine);
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+                console.log(message);
+            }
+            
+            logDebug('Login pagina geladen');
+            
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
@@ -145,6 +167,8 @@
                 loginButton.disabled = true;
                 loginButton.textContent = 'Inloggen...';
                 
+                logDebug(`Login poging voor gebruiker: ${username}`);
+                
                 // Verzend het formulier met de juiste content type
                 fetch('/api/auth/login', {
                     method: 'POST',
@@ -155,10 +179,11 @@
                     credentials: 'include', // Belangrijk: zorg dat cookies worden meegestuurd
                     body: JSON.stringify({
                         username: username,
-                        wachtwoord: password
+                        wachtwoord: password  // Belangrijk: server verwacht 'wachtwoord' niet 'password'
                     })
                 })
                 .then(response => {
+                    logDebug(`Status: ${response.status} ${response.statusText}`);
                     if (!response.ok) {
                         return response.json().then(data => {
                             throw new Error(data.error || 'Inloggen mislukt');
@@ -168,7 +193,7 @@
                 })
                 .then(data => {
                     // Login succesvol
-                    console.log('Login succesvol, sessie aangemaakt', data);
+                    logDebug('Login succesvol, sessie aangemaakt: ' + JSON.stringify(data));
                     
                     // Check of er een pending styling is opgeslagen
                     const hasPendingStyling = sessionStorage.getItem('pendingStyling');
@@ -178,6 +203,7 @@
                     const redirectUrl = urlParams.get('redirect');
                     
                     // Controleer de sessie voor het redirect
+                    logDebug('Sessie controleren...');
                     fetch('/api/auth/check', {
                         method: 'GET',
                         credentials: 'include',
@@ -188,20 +214,21 @@
                     })
                     .then(response => response.json())
                     .then(checkData => {
-                        console.log('Sessie check na login:', checkData);
+                        logDebug('Sessie check na login: ' + JSON.stringify(checkData));
                         
                         // Vertraging toevoegen voor betrouwbare redirect met sessie
                         setTimeout(() => {
                             if (redirectUrl) {
-                                console.log('Redirect naar:', redirectUrl);
+                                logDebug('Redirect naar: ' + redirectUrl);
                                 window.location.href = redirectUrl;
                             } else {
+                                logDebug('Redirect naar index.html');
                                 window.location.href = '/index.html';
                             }
                         }, 500); // Korte vertraging voor betere sessiebehandeling
                     })
                     .catch(error => {
-                        console.error('Sessie check error:', error);
+                        logDebug('Sessie check error: ' + error);
                         alert('Er is een fout opgetreden bij het verifiëren van je sessie. Probeer de pagina te vernieuwen.');
                     });
                 })
@@ -210,7 +237,7 @@
                     loginButton.disabled = false;
                     loginButton.textContent = originalButtonText;
                     
-                    console.error('Login error:', error);
+                    logDebug('Login error: ' + error.message);
                     errorMessage.textContent = error.message;
                     errorMessage.style.display = 'block';
                 });

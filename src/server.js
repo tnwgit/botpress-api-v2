@@ -649,17 +649,24 @@ app.put('/api/bots/:id', checkAuth, async (req, res) => {
 
 // Auth endpoints
 app.post('/api/auth/login', (req, res) => {
+    console.log('Login request ontvangen:', req.body);
+    
     const { username, wachtwoord } = req.body;
     
     if (!username || !wachtwoord) {
+        console.log('Gebruikersnaam of wachtwoord ontbreekt:', { username: !!username, wachtwoord: !!wachtwoord });
         return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
     }
     
+    console.log('Controleren op gebruiker in database:', username);
     const gebruiker = gebruikers[username];
     
     if (!gebruiker || gebruiker.wachtwoord !== wachtwoord) {
+        console.log('Ongeldige inloggegevens:', { gebruikerBestaat: !!gebruiker, wachtwoordCorrect: gebruiker ? gebruiker.wachtwoord === wachtwoord : false });
         return res.status(401).json({ error: 'Ongeldige inloggegevens' });
     }
+    
+    console.log('Geldige inloggegevens, sessie opzetten');
     
     // Initialiseer de sessie als deze niet bestaat (voor Vercel)
     req.session = req.session || {};
@@ -674,6 +681,8 @@ app.post('/api/auth/login', (req, res) => {
             return res.status(500).json({ error: 'Serverfout bij het inloggen' });
         }
         
+        console.log('Sessie succesvol opgeslagen, cookies instellen');
+        
         // Stel ook een backup auth cookie in voor noodgevallen
         res.cookie('bp-auth-token', 'admin-auth-token', {
             secure: isVercelProduction,
@@ -683,6 +692,7 @@ app.post('/api/auth/login', (req, res) => {
             sameSite: 'lax'
         });
         
+        console.log('Cookies ingesteld, antwoord terugsturen');
         console.log(`Gebruiker ${username} succesvol ingelogd, session ID: ${req.sessionID || 'geen-id'}`);
         res.json({
             success: true,

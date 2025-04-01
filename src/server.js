@@ -88,6 +88,29 @@ const checkAuth = (req, res, next) => {
             return next();
         }
         
+        // Check voor JWT token in de Authorization header
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.substring(7); // Verwijder 'Bearer ' prefix
+                const decodedData = JSON.parse(Buffer.from(token, 'base64').toString());
+                
+                // Check of de token niet verlopen is
+                if (decodedData && decodedData.exp && decodedData.exp > Date.now()) {
+                    console.log('[Auth Check] Gebruiker geautoriseerd via JWT token');
+                    req.session = req.session || {};
+                    req.session.gebruiker = {
+                        username: decodedData.username,
+                        naam: decodedData.naam,
+                        rol: decodedData.rol
+                    };
+                    return next();
+                }
+            } catch (e) {
+                console.error('Fout bij verwerken token:', e);
+            }
+        }
+        
         return res.status(401).json({ error: 'Sessie verlopen of niet beschikbaar' });
     }
     
@@ -110,6 +133,28 @@ const checkAuth = (req, res, next) => {
             rol: 'admin'
         };
         return next();
+    }
+    
+    // Check voor JWT token in de Authorization header (extra check voor het geval de sessie bestaat maar leeg is)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const token = authHeader.substring(7); // Verwijder 'Bearer ' prefix
+            const decodedData = JSON.parse(Buffer.from(token, 'base64').toString());
+            
+            // Check of de token niet verlopen is
+            if (decodedData && decodedData.exp && decodedData.exp > Date.now()) {
+                console.log('[Auth Check] Gebruiker geautoriseerd via JWT token');
+                req.session.gebruiker = {
+                    username: decodedData.username,
+                    naam: decodedData.naam,
+                    rol: decodedData.rol
+                };
+                return next();
+            }
+        } catch (e) {
+            console.error('Fout bij verwerken token:', e);
+        }
     }
 
     console.log('[Auth Check] Niet geautoriseerd');
@@ -674,16 +719,24 @@ app.post('/api/auth/login', (req, res) => {
     // Sla gebruikersinformatie op in de sessie
     req.session.gebruiker = gebruiker;
     
+    // Maak een simpele JWT token aan (technisch niet veilig genoeg voor productie, maar voor demonstratie)
+    const token = Buffer.from(JSON.stringify({
+        username: gebruiker.username || username,
+        naam: gebruiker.naam,
+        rol: gebruiker.rol,
+        exp: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 dagen
+    })).toString('base64');
+    
     // Forceer een sessie save voor Vercel
     req.session.save((err) => {
         if (err) {
             console.error('Fout bij opslaan sessie:', err);
-            return res.status(500).json({ error: 'Serverfout bij het inloggen' });
+            // We gaan toch door, omdat we nu de token gebruiken
         }
         
         console.log('Sessie succesvol opgeslagen, cookies instellen');
         
-        // Stel ook een backup auth cookie in voor noodgevallen
+        // Stel een auth token cookie in
         res.cookie('bp-auth-token', 'admin-auth-token', {
             secure: isVercelProduction,
             httpOnly: true,
@@ -696,6 +749,7 @@ app.post('/api/auth/login', (req, res) => {
         console.log(`Gebruiker ${username} succesvol ingelogd, session ID: ${req.sessionID || 'geen-id'}`);
         res.json({
             success: true,
+            token: token, // Stuur de token terug naar de client
             gebruiker: {
                 username: gebruiker.username || username,
                 naam: gebruiker.naam,
@@ -716,14 +770,55 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 app.get('/api/auth/check', (req, res) => {
+    // Check sessie eerst
     if (req.session && req.session.gebruiker) {
-        res.json({
+        console.log('Gebruiker gevonden in sessie');
+        return res.json({
             isAuthenticated: true,
             gebruiker: req.session.gebruiker
         });
-    } else {
-        res.json({ isAuthenticated: false });
     }
+    
+    // Check voor de auth token cookie
+    const authCookie = req.cookies && req.cookies['bp-auth-token'];
+    if (authCookie === 'admin-auth-token') {
+        console.log('Gebruiker geautoriseerd via auth cookie');
+        return res.json({
+            isAuthenticated: true,
+            gebruiker: {
+                username: 'admin',
+                naam: 'Admin Gebruiker',
+                rol: 'admin'
+            }
+        });
+    }
+    
+    // Check voor Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const token = authHeader.substring(7); // Verwijder 'Bearer ' prefix
+            const decodedData = JSON.parse(Buffer.from(token, 'base64').toString());
+            
+            // Check of de token niet verlopen is
+            if (decodedData && decodedData.exp && decodedData.exp > Date.now()) {
+                console.log('Gebruiker geautoriseerd via JWT token');
+                return res.json({
+                    isAuthenticated: true,
+                    gebruiker: {
+                        username: decodedData.username,
+                        naam: decodedData.naam,
+                        rol: decodedData.rol
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Fout bij verwerken token:', e);
+        }
+    }
+    
+    // Geen geldige authenticatie gevonden
+    res.json({ isAuthenticated: false });
 });
 
 app.get('/api/auth/me', (req, res) => {

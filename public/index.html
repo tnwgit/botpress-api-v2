@@ -8,6 +8,7 @@
     <script src="supabase.js"></script>
     <script type="module">
         import { getBots, addBot, deleteBot, updateBot } from './supabase.js';
+        import { isAuthenticated, getCurrentUser, logout } from './js/auth-helpers.js';
 
         // Exporteer functies naar window object voor onclick handlers
         window.editAssistant = editAssistant;
@@ -19,38 +20,36 @@
         // Auth check bij laden van de pagina
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Controleer of gebruiker is ingelogd
-                const response = await fetch('/api/auth/check', {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                
-                if (!data.isAuthenticated) {
-                    // Stuur door naar login pagina indien niet ingelogd
-                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                const authenticated = await isAuthenticated();
+                if (!authenticated) {
+                    console.log('Niet ingelogd, doorsturen naar login pagina');
+                    window.location.href = '/login.html';
                     return;
                 }
                 
-                // Toon huidige gebruiker
-                document.getElementById('currentUser').textContent = `Ingelogd als: ${data.gebruiker.naam}`;
+                const user = getCurrentUser();
+                if (user) {
+                    console.log('Ingelogd als:', user.username);
+                    // Eventueel gebruikersnaam tonen
+                    const navbarUser = document.getElementById('navbar-user');
+                    if (navbarUser) {
+                        navbarUser.textContent = user.naam || user.username;
+                    }
+                }
                 
-                // Update assistentenlijst
-                updateAssistantList();
+                // Voeg logout functionaliteit toe
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        logout();
+                    });
+                }
                 
-                // Event handlers instellen
-                document.getElementById('addAssistantBtn').addEventListener('click', function() {
-                    document.getElementById('assistantFormTitle').textContent = 'Nieuwe Assistent Toevoegen';
-                    document.getElementById('assistantName').value = '';
-                    document.getElementById('webhookId').value = '';
-                    document.getElementById('submitAssistantBtn').textContent = 'Toevoegen';
-                    document.getElementById('submitAssistantBtn').onclick = handleAddAssistant;
-                    document.querySelector('.add-assistant-form').style.display = 'block';
-                });
-                
-                // Stel uitlog knop in
-                document.getElementById('logoutBtn').addEventListener('click', logout);
+                // Laad de bots en andere gegevens...
+                await loadBots();
             } catch (error) {
-                console.error('Auth check error:', error);
+                console.error('Error tijdens authenticatie check:', error);
                 window.location.href = '/login.html';
             }
         });

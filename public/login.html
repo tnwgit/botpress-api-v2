@@ -207,6 +207,15 @@
                     // Login succesvol
                     logDebug('Login succesvol, sessie aangemaakt: ' + JSON.stringify(data));
                     
+                    // Sla de token op in localStorage
+                    if (data.token) {
+                        localStorage.setItem('auth-token', data.token);
+                        logDebug('Token opgeslagen in localStorage');
+                    }
+                    
+                    // Sla gebruikersinfo op in localStorage
+                    localStorage.setItem('user', JSON.stringify(data.gebruiker));
+                    
                     // Check of er een pending styling is opgeslagen
                     const hasPendingStyling = sessionStorage.getItem('pendingStyling');
                     
@@ -215,13 +224,14 @@
                     const redirectUrl = urlParams.get('redirect');
                     
                     // Controleer de sessie voor het redirect
-                    logDebug('Sessie controleren...');
+                    logDebug('Sessie controleren met token...');
                     fetch('/api/auth/check', {
                         method: 'GET',
                         credentials: 'include',
                         headers: {
                             'Cache-Control': 'no-cache',
-                            'Pragma': 'no-cache'
+                            'Pragma': 'no-cache',
+                            'Authorization': 'Bearer ' + localStorage.getItem('auth-token')
                         }
                     })
                     .then(response => response.json())
@@ -323,12 +333,17 @@
             checkAuth.addEventListener('click', function() {
                 logDebug('Controleren auth status...');
                 
+                // Haal token op uit localStorage
+                const token = localStorage.getItem('auth-token');
+                logDebug(`Token in localStorage: ${token ? 'aanwezig' : 'niet gevonden'}`);
+                
                 fetch('/api/auth/check', {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
                         'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Pragma': 'no-cache',
+                        'Authorization': token ? `Bearer ${token}` : ''
                     }
                 })
                 .then(response => {
@@ -348,4 +363,4 @@
         });
     </script>
 </body>
-</html> 
+</html>

@@ -81,12 +81,4 @@ window.fetch = function(url, options = {}) {
         options.headers = addAuthorizationHeader(options.headers);
     }
     return originalFetch(url, options);
-};
-
-// Exporteer de functies
-export {
-    addAuthorizationHeader,
-    isAuthenticated,
-    getCurrentUser,
-    logout
 }; 

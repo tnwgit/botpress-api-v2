@@ -4,22 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Assistent Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <!-- Supabase client via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <!-- Onze supabase implementatie -->
     <script src="supabase.js"></script>
-    <script type="module">
-        import { getBots, addBot, deleteBot, updateBot } from './supabase.js';
-        import { isAuthenticated, getCurrentUser, logout } from './js/auth-helpers.js';
-
-        // Exporteer functies naar window object voor onclick handlers
-        window.editAssistant = editAssistant;
-        window.addNewAssistant = handleAddAssistant;
-        window.removeAssistant = handleRemoveAssistant;
-        window.handleStartChat = handleStartChat;
-        window.handleAssistantStyling = handleAssistantStyling;
-        
-        // Auth check bij laden van de pagina
-        document.addEventListener('DOMContentLoaded', async () => {
+    <script src="js/auth-helpers.js"></script>
+    <script>
+        // Wacht tot het document geladen is
+        document.addEventListener('DOMContentLoaded', async function() {
             try {
+                // Auth check 
                 const authenticated = await isAuthenticated();
                 if (!authenticated) {
                     console.log('Niet ingelogd, doorsturen naar login pagina');
@@ -48,35 +43,51 @@
                 
                 // Laad de bots en andere gegevens...
                 await loadBots();
+                
+                // Instellen van event listener voor de "Nieuwe Assistent" knop
+                const addAssistantBtn = document.getElementById('addAssistantBtn');
+                if (addAssistantBtn) {
+                    addAssistantBtn.addEventListener('click', function() {
+                        // Reset formuliertitel en velden
+                        document.getElementById('assistantFormTitle').textContent = 'Nieuwe Assistent Toevoegen';
+                        document.getElementById('assistantName').value = '';
+                        document.getElementById('webhookId').value = '';
+                        
+                        // Reset submit knop
+                        const submitBtn = document.getElementById('submitAssistantBtn');
+                        submitBtn.textContent = 'Toevoegen';
+                        submitBtn.onclick = () => handleAddAssistant();
+                        
+                        // Toon formulier
+                        document.querySelector('.add-assistant-form').style.display = 'block';
+                        document.getElementById('assistantName').focus();
+                    });
+                }
+                
+                // Annuleerknop voor formulier
+                const cancelBtn = document.getElementById('cancelAssistantBtn');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', function() {
+                        document.querySelector('.add-assistant-form').style.display = 'none';
+                    });
+                }
             } catch (error) {
                 console.error('Error tijdens authenticatie check:', error);
                 window.location.href = '/login.html';
             }
         });
         
-        // Functie om uit te loggen
-        function logout() {
-            fetch('/api/auth/logout', {
-                method: 'POST',
-                credentials: 'include'
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Redirect naar login pagina na uitloggen
-                window.location.href = '/login.html';
-            })
-            .catch(error => {
-                console.error('Uitloggen mislukt:', error);
-                // Redirect toch naar login pagina
-                window.location.href = '/login.html';
-            });
-        }
-        
         // Functie om de assistentenlijst bij te werken
         async function updateAssistantList() {
             try {
                 const assistants = await getBots();
                 const assistantList = document.getElementById('assistantList');
+                
+                if (!assistantList) {
+                    console.error('Element met ID "assistantList" niet gevonden');
+                    return;
+                }
+                
                 assistantList.innerHTML = '';
                 
                 if (!assistants || assistants.length === 0) {
@@ -123,7 +134,10 @@
                 });
             } catch (error) {
                 console.error('Error updating assistant list:', error);
-                document.getElementById('assistantList').innerHTML = '<div class="error">Er is een fout opgetreden bij het laden van de assistenten</div>';
+                const assistantList = document.getElementById('assistantList');
+                if (assistantList) {
+                    assistantList.innerHTML = '<div class="error">Er is een fout opgetreden bij het laden van de assistenten</div>';
+                }
             }
         }
 
@@ -177,7 +191,7 @@
             // Sla relevante bot gegevens op in localStorage voor de chat pagina
             localStorage.setItem('botId', botId);
             localStorage.setItem('botName', botName);
-            localStorage.setItem('webhookId', webhookId);
+            localStorage.setItem('currentWebhookId', webhookId);
             
             // Navigeer naar de chat pagina
             window.location.href = `/chat-integrated.html?botId=${botId}`;
@@ -234,7 +248,18 @@
             document.getElementById('assistantName').focus();
         }
 
-        window.logout = logout;
+        // Functie om de bots te laden
+        async function loadBots() {
+            try {
+                console.log('Bots laden...');
+                await updateAssistantList();
+                console.log('Assistentenlijst bijgewerkt');
+                return true;
+            } catch (error) {
+                console.error('Fout bij het laden van bots:', error);
+                return false;
+            }
+        }
     </script>
     <style>
         * {
@@ -628,69 +653,38 @@
     </div>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Controleer of we zijn ingelogd
-            checkLoginStatus();
-            
-            // Haal bots op van de server
-            fetchBots();
-            
-            // Voeg event listener toe voor uitloggen knop
-            document.getElementById('logoutBtn').addEventListener('click', function() {
-                logout();
-            });
-            
-            // Voeg event listeners toe voor formulier
-            const botForm = document.getElementById('botForm');
-            if (botForm) {
-                botForm.addEventListener('submit', handleBotFormSubmit);
-            }
-        });
-        
-        // Controleer of de gebruiker is ingelogd
-        function checkLoginStatus() {
-            fetch('/api/auth/check')
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.isAuthenticated) {
-                        window.location.href = '/login.html';
-                    } else {
-                        const userElement = document.getElementById('currentUser');
-                        if (userElement && data.gebruiker) {
-                            userElement.textContent = data.gebruiker.naam || data.gebruiker.username;
+        // Functie om bots te laden (fallback functie als de module niet werkt)
+        async function fetchBots() {
+            console.log('fetchBots fallback functie aangeroepen.');
+            // Als loadBots beschikbaar is, gebruik die
+            if (window.loadBots) {
+                window.loadBots();
+            } else {
+                console.error('loadBots functie niet beschikbaar. Dit zou niet moeten gebeuren als de module juist is geladen.');
+                // Probeer de bots alsnog direct op te halen
+                try {
+                    const response = await fetch('/api/bots', {
+                        credentials: 'include',
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('auth-token')
                         }
+                    });
+                    if (response.ok) {
+                        const bots = await response.json();
+                        console.log('Bots direct opgehaald:', bots);
+                        // Als updateAssistantList beschikbaar is, gebruik die
+                        if (window.updateAssistantList) {
+                            window.updateAssistantList(bots);
+                        } else {
+                            console.error('updateAssistantList functie niet beschikbaar.');
+                        }
+                    } else {
+                        console.error('Fout bij direct ophalen van bots:', response.status);
                     }
-                })
-                .catch(error => {
-                    console.error('Fout bij controleren login status:', error);
-                    window.location.href = '/login.html';
-                });
-        }
-        
-        // Uitloggen functie
-        function logout() {
-            fetch('/api/auth/logout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+                } catch (error) {
+                    console.error('Fout bij direct ophalen van bots:', error);
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Wis alle lokale opslag
-                    sessionStorage.clear();
-                    localStorage.clear();
-                    // Redirect naar login pagina
-                    window.location.href = '/login.html';
-                } else {
-                    alert('Uitloggen mislukt: ' + (data.error || 'Onbekende fout'));
-                }
-            })
-            .catch(error => {
-                console.error('Uitloggen mislukt:', error);
-                alert('Uitloggen mislukt: ' + error.message);
-            });
+            }
         }
     </script>
 </body>

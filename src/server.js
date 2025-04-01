@@ -24,6 +24,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(cookieParser());
 
+// Helper om te controleren of we in Vercel productie omgeving zitten
+const isVercelProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+console.log(`Draait in Vercel productie omgeving: ${isVercelProduction}`);
+
 // Sessie configuratie
 app.use(session({
     name: 'botpress-app.sid',
@@ -122,10 +126,6 @@ if (!fs.existsSync(STYLING_DIR)) {
         console.error(`Kon styling directory niet aanmaken: ${error.message}`);
     }
 }
-
-// Helper om te controleren of we in Vercel productie omgeving zitten
-const isVercelProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-console.log(`Draait in Vercel productie omgeving: ${isVercelProduction}`);
 
 // In-memory storage voor styling in productie als fallback
 const stylingMemoryStorage = new Map();

@@ -96,20 +96,33 @@
                 <h2>Botpress Chat</h2>
             </div>
             <h1>Login bij Admin Dashboard</h1>
-            <form id="loginForm" method="post" action="/api/auth/login">
+            
+            <!-- Message container voor meldingen -->
+            <div id="message-container" style="display: none; margin-bottom: 1rem;"></div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
                 <div class="form-group">
                     <label for="username">Gebruikersnaam</label>
-                    <input type="text" id="username" name="username" required autocomplete="username" value="admin">
+                    <input type="text" id="username" name="username" required autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="password">Wachtwoord</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password" value="admin">
+                    <div style="position: relative;">
+                        <input type="password" id="password" name="password" required autocomplete="current-password">
+                        <button type="button" id="password-toggle" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; width: auto; padding: 0; cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <div id="errorMessage" class="error-message">
-                    Ongeldige gebruikersnaam of wachtwoord
-                </div>
+                
+                <!-- Verborgen veld voor redirect URL -->
+                <input type="hidden" id="redirectUrl" name="redirectUrl" value="">
+                
                 <div class="form-group">
-                    <button type="submit">Inloggen met formulier</button>
+                    <button type="submit">Inloggen</button>
                 </div>
             </form>
             
@@ -129,250 +142,181 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Wis eventuele oude login sessions
-            localStorage.removeItem('loginRedirected');
-            
-            const loginForm = document.getElementById('loginForm');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            // Maak debug div aan
-            const debugDiv = document.createElement('div');
-            debugDiv.style.marginTop = '20px';
-            debugDiv.style.padding = '10px';
-            debugDiv.style.border = '1px solid #ddd';
-            debugDiv.style.borderRadius = '4px';
-            debugDiv.style.fontFamily = 'monospace';
-            debugDiv.style.fontSize = '12px';
-            debugDiv.style.maxHeight = '150px';
-            debugDiv.style.overflow = 'auto';
-            document.querySelector('.login-box').appendChild(debugDiv);
-            
-            function logDebug(message) {
-                const logLine = document.createElement('div');
-                logLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                debugDiv.appendChild(logLine);
-                debugDiv.scrollTop = debugDiv.scrollHeight;
-                console.log(message);
+            // Verberg en toon wachtwoord functionaliteit
+            const pwToggle = document.getElementById('password-toggle');
+            if (pwToggle) {
+                pwToggle.addEventListener('click', function() {
+                    const pwInput = document.getElementById('password');
+                    if (pwInput.type === 'password') {
+                        pwInput.type = 'text';
+                        pwToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+                    } else {
+                        pwInput.type = 'password';
+                        pwToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+                    }
+                });
             }
             
-            logDebug('Login pagina geladen');
+            // Debug informatie weergeven voor authenticatieproblemen
+            console.log('Login pagina geladen');
             
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
+            // Controleer of er redirect URL is in de URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
+            
+            if (redirectUrl) {
+                console.log('Redirect URL gevonden:', redirectUrl);
                 
-                const username = document.getElementById('username').value.trim();
-                const password = document.getElementById('password').value;
+                // Sla de redirect URL op voor na succesvolle login
+                document.getElementById('redirectUrl').value = redirectUrl;
                 
-                // Validatie
-                if (!username || !password) {
-                    errorMessage.textContent = 'Gebruikersnaam en wachtwoord zijn verplicht';
-                    errorMessage.style.display = 'block';
-                    return;
+                // Toon bericht dat gebruiker moet inloggen om door te gaan
+                const messageContainer = document.getElementById('message-container');
+                if (messageContainer) {
+                    messageContainer.innerHTML = '<div class="alert alert-info">U moet inloggen om door te gaan naar de gevraagde pagina.</div>';
+                    messageContainer.style.display = 'block';
                 }
+            }
+            
+            // Controleer of er eventuele auth cookies zijn
+            console.log('Beschikbare cookies:', document.cookie);
+            
+            // Controleer localStorage voor token
+            const storedToken = localStorage.getItem('auth-token');
+            console.log('Token in localStorage:', !!storedToken);
+            
+            // Als er al een token is in localStorage, probeer dan direct door te gaan
+            if (storedToken && redirectUrl) {
+                console.log('Er is al een token in localStorage, proberen automatisch door te gaan...');
                 
-                // Reset de error message
-                errorMessage.style.display = 'none';
-                
-                // Toon loading indicator
-                const loginButton = document.querySelector('button[type="submit"]');
-                const originalButtonText = loginButton.textContent;
-                loginButton.disabled = true;
-                loginButton.textContent = 'Inloggen...';
-                
-                logDebug(`Login poging voor gebruiker: ${username}`);
-                
-                // Verzend het formulier met de juiste content type
-                fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include', // Belangrijk: zorg dat cookies worden meegestuurd
-                    body: JSON.stringify({
-                        username: username,
-                        wachtwoord: password  // Belangrijk: server verwacht 'wachtwoord' niet 'password'
-                    })
-                })
-                .then(response => {
-                    logDebug(`Status: ${response.status} ${response.statusText}`);
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.error || 'Inloggen mislukt');
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Login succesvol
-                    logDebug('Login succesvol, sessie aangemaakt: ' + JSON.stringify(data));
-                    
-                    // Sla de token op in localStorage
-                    if (data.token) {
-                        localStorage.setItem('auth-token', data.token);
-                        // Zet ook een backup cookie voor Vercel
-                        document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=86400; SameSite=Lax`;
-                        logDebug('Token opgeslagen in localStorage en cookie');
-                    }
-                    
-                    // Sla gebruikersinfo op in localStorage
-                    localStorage.setItem('user', JSON.stringify(data.gebruiker));
-                    
-                    // Check of er een pending styling is opgeslagen
-                    const hasPendingStyling = sessionStorage.getItem('pendingStyling');
-                    
-                    // Check of er een redirect parameter is
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const redirectUrl = urlParams.get('redirect');
-                    
-                    // Controleer de sessie voor het redirect
-                    logDebug('Sessie controleren met token...');
-                    fetch('/api/auth/check', {
-                        method: 'GET',
-                        credentials: 'include',
-                        headers: {
-                            'Cache-Control': 'no-cache',
-                            'Pragma': 'no-cache',
-                            'Authorization': 'Bearer ' + localStorage.getItem('auth-token')
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(checkData => {
-                        logDebug('Sessie check na login: ' + JSON.stringify(checkData));
-                        
-                        // Vertraging toevoegen voor betrouwbare redirect met sessie
-                        setTimeout(() => {
-                            if (redirectUrl) {
-                                // Voor Vercel voegen we de token toe aan de URL als query parameter
-                                const token = localStorage.getItem('auth-token');
-                                let targetUrl = redirectUrl;
-                                
-                                // Voeg token toe aan redirectUrl als het nog niet in de URL staat
-                                if (token && !targetUrl.includes('auth_token=')) {
-                                    const hasParams = targetUrl.includes('?');
-                                    targetUrl += (hasParams ? '&' : '?') + 'auth_token=' + encodeURIComponent(token);
-                                }
-                                
-                                logDebug('Redirect naar: ' + targetUrl);
-                                window.location.href = targetUrl;
-                            } else {
-                                logDebug('Redirect naar index.html');
-                                window.location.href = '/index.html';
-                            }
-                        }, 1000); // Iets langere vertraging voor betere sessiebehandeling
-                    })
-                    .catch(error => {
-                        logDebug('Sessie check error: ' + error);
-                        alert('Er is een fout opgetreden bij het verifiëren van je sessie. Probeer de pagina te vernieuwen.');
-                    });
-                })
-                .catch(error => {
-                    // Reset login button
-                    loginButton.disabled = false;
-                    loginButton.textContent = originalButtonText;
-                    
-                    logDebug('Login error: ' + error.message);
-                    errorMessage.textContent = error.message;
-                    errorMessage.style.display = 'block';
-                });
-            });
-
-            // Voeg event listeners toe voor de test-knoppen
-            const testBtn = document.getElementById('testBtn');
-            testBtn.addEventListener('click', function() {
-                logDebug('Test directe API aanroep...');
-                
-                fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        username: 'admin',
-                        wachtwoord: 'admin'
-                    })
-                })
-                .then(response => {
-                    logDebug(`Status: ${response.status} ${response.statusText}`);
-                    return response.json().catch(e => {
-                        logDebug(`JSON parse error: ${e.message}`);
-                        return { error: 'Invalid JSON response' };
-                    });
-                })
-                .then(data => {
-                    logDebug(`Response data: ${JSON.stringify(data)}`);
-                })
-                .catch(error => {
-                    logDebug(`Fetch error: ${error.message}`);
-                });
-            });
-
-            const testBtnLocal = document.getElementById('testBtnLocal');
-            testBtnLocal.addEventListener('click', function() {
-                const baseUrl = window.location.origin;
-                logDebug(`Test met absolute URL: ${baseUrl}/api/auth/login`);
-                
-                fetch(`${baseUrl}/api/auth/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        username: 'admin',
-                        wachtwoord: 'admin'
-                    })
-                })
-                .then(response => {
-                    logDebug(`Status: ${response.status} ${response.statusText}`);
-                    return response.json().catch(e => {
-                        logDebug(`JSON parse error: ${e.message}`);
-                        return { error: 'Invalid JSON response' };
-                    });
-                })
-                .then(data => {
-                    logDebug(`Response data: ${JSON.stringify(data)}`);
-                })
-                .catch(error => {
-                    logDebug(`Fetch error: ${error.message}`);
-                });
-            });
-
-            const checkAuth = document.getElementById('checkAuth');
-            checkAuth.addEventListener('click', function() {
-                logDebug('Controleren auth status...');
-                
-                // Haal token op uit localStorage
-                const token = localStorage.getItem('auth-token');
-                logDebug(`Token in localStorage: ${token ? 'aanwezig' : 'niet gevonden'}`);
-                
+                // Maak een auth check request
                 fetch('/api/auth/check', {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache',
-                        'Authorization': token ? `Bearer ${token}` : ''
+                        'Authorization': `Bearer ${storedToken}`,
+                        'Cache-Control': 'no-cache'
                     }
                 })
-                .then(response => {
-                    logDebug(`Status: ${response.status} ${response.statusText}`);
-                    return response.json().catch(e => {
-                        logDebug(`JSON parse error: ${e.message}`);
-                        return { error: 'Invalid JSON response' };
-                    });
-                })
+                .then(response => response.json())
                 .then(data => {
-                    logDebug(`Auth status: ${JSON.stringify(data)}`);
+                    if (data.isAuthenticated) {
+                        console.log('Gebruiker is al ingelogd, doorsturen naar:', redirectUrl);
+                        
+                        // Voeg token toe aan redirect URL als het een Vercel omgeving is
+                        let finalRedirectUrl = redirectUrl;
+                        if (window.location.hostname.includes('vercel.app') || 
+                            window.location.hostname.includes('thenextwilson.ai')) {
+                            
+                            // Controleer of de URL al parameters heeft
+                            if (finalRedirectUrl.includes('?')) {
+                                finalRedirectUrl += `&auth_token=${storedToken}`;
+                            } else {
+                                finalRedirectUrl += `?auth_token=${storedToken}`;
+                            }
+                        }
+                        
+                        window.location.href = finalRedirectUrl;
+                    } else {
+                        console.log('Token niet meer geldig, gebruiker moet opnieuw inloggen');
+                    }
                 })
                 .catch(error => {
-                    logDebug(`Fetch error: ${error.message}`);
+                    console.error('Fout bij controleren token:', error);
                 });
-            });
+            }
         });
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const redirectUrlInput = document.getElementById('redirectUrl');
+            const messageContainer = document.getElementById('message-container');
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            const redirectUrl = redirectUrlInput.value;
+            
+            if (!username || !password) {
+                messageContainer.innerHTML = '<div class="alert alert-danger">Vul beide velden in</div>';
+                messageContainer.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // Toon loading state
+                const submitButton = document.querySelector('button[type="submit"]');
+                const originalButtonText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = 'Inloggen...';
+                
+                // Login request
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    // Sla token op in localStorage
+                    localStorage.setItem('auth-token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    // Set cookie voor Vercel omgeving
+                    document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=86400; SameSite=Lax`;
+                    document.cookie = `auth-token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+                    
+                    // Als er een redirect URL is, stuur de gebruiker door
+                    if (redirectUrl) {
+                        // Voeg token toe aan redirect URL als het een Vercel omgeving is
+                        let finalRedirectUrl = redirectUrl;
+                        
+                        // Als we op Vercel draaien, voeg token toe aan URL parameters
+                        if (window.location.hostname.includes('vercel.app') || 
+                            window.location.hostname.includes('thenextwilson.ai')) {
+                            
+                            console.log('Vercel omgeving gedetecteerd, token toevoegen aan redirect URL');
+                            
+                            // Controleer of de URL al parameters heeft
+                            if (finalRedirectUrl.includes('?')) {
+                                finalRedirectUrl += `&auth_token=${data.token}`;
+                            } else {
+                                finalRedirectUrl += `?auth_token=${data.token}`;
+                            }
+                        }
+                        
+                        console.log('Redirect naar:', finalRedirectUrl);
+                        window.location.href = finalRedirectUrl;
+                    } else {
+                        // Anders naar de homepagina
+                        window.location.href = '/';
+                    }
+                } else {
+                    // Toon foutmelding
+                    messageContainer.innerHTML = `<div class="alert alert-danger">${data.message || 'Ongeldige inloggegevens'}</div>`;
+                    messageContainer.style.display = 'block';
+                    
+                    // Reset login button
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                messageContainer.innerHTML = '<div class="alert alert-danger">Er is een fout opgetreden bij het inloggen. Probeer het later opnieuw.</div>';
+                messageContainer.style.display = 'block';
+                
+                // Reset login button
+                const submitButton = document.querySelector('button[type="submit"]');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Inloggen';
+            }
+        }
     </script>
 </body>
 </html>

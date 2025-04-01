@@ -31,14 +31,18 @@ app.use(session({
     resave: true,
     saveUninitialized: true,
     rolling: true, // Vernieuw de cookie bij elke request
-    store: new FileStore({
-        path: path.join(__dirname, '../data/sessions'),
-        ttl: 86400, // 1 dag in seconden
-        retries: 3,
-        reapInterval: 3600, // Opruimen oude sessies elke uur
-    }),
+    store: isVercelProduction ? 
+        // In-memory store voor Vercel
+        new session.MemoryStore() : 
+        // Bestandsopslag voor lokale ontwikkeling
+        new FileStore({
+            path: path.join(__dirname, '../data/sessions'),
+            ttl: 86400, // 1 dag in seconden
+            retries: 3,
+            reapInterval: 3600, // Opruimen oude sessies elke uur
+        }),
     cookie: {
-        secure: false, // Zet op true in productie met HTTPS
+        secure: isVercelProduction, // True in productie met HTTPS
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dagen
         path: '/',
@@ -62,7 +66,28 @@ app.use((req, res, next) => {
 
 // Authenticatie check middleware - meer tolerant
 const checkAuth = (req, res, next) => {
-    console.log(`[Auth Check] Session ID: ${req.sessionID}, heeft gebruiker: ${!!req.session.gebruiker}`);
+    // Extra veiligheidscontrole om 'undefined' fouten te voorkomen
+    if (!req.session) {
+        console.log('[Auth Check] Geen sessie beschikbaar');
+        
+        // Check voor authenticatie cookie als fallback
+        const authCookie = req.cookies && req.cookies['bp-auth-token'];
+        if (authCookie === 'admin-auth-token') {
+            console.log('[Auth Check] Gebruiker geautoriseerd via backup auth cookie');
+            // Maak een nieuwe sessie aan als die niet bestaat
+            req.session = req.session || {};
+            req.session.gebruiker = {
+                username: 'admin',
+                naam: 'Admin Gebruiker',
+                rol: 'admin'
+            };
+            return next();
+        }
+        
+        return res.status(401).json({ error: 'Sessie verlopen of niet beschikbaar' });
+    }
+    
+    console.log(`[Auth Check] Session ID: ${req.sessionID || 'geen-id'}, heeft gebruiker: ${!!(req.session && req.session.gebruiker)}`);
 
     // Als gebruiker is ingelogd, ga verder
     if (req.session && req.session.gebruiker) {
@@ -71,7 +96,7 @@ const checkAuth = (req, res, next) => {
     }
     
     // Check voor authenticatie cookie dat we zelf instellen als backup
-    const authCookie = req.cookies['bp-auth-token'];
+    const authCookie = req.cookies && req.cookies['bp-auth-token'];
     if (authCookie === 'admin-auth-token') {
         console.log('[Auth Check] Gebruiker geautoriseerd via backup auth cookie');
         // Herstel de sessie
@@ -624,49 +649,50 @@ app.put('/api/bots/:id', checkAuth, async (req, res) => {
 
 // Auth endpoints
 app.post('/api/auth/login', (req, res) => {
-    try {
-        const username = req.body.username;
-        const password = req.body.password;
-        
-        console.log('Login poging ontvangen:', { username, password });
-        
-        if (!username || !password) {
-            console.log('Ontbrekende gebruikersnaam of wachtwoord');
-            return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
-        }
-        
-        if (gebruikers[username] && gebruikers[username].wachtwoord === password) {
-            const gebruiker = {
-                username,
-                naam: gebruikers[username].naam,
-                rol: gebruikers[username].rol
-            };
-            
-            // Sla de gebruiker op in de sessie
-            req.session.gebruiker = gebruiker;
-            
-            // Stel ook een backup auth cookie in voor noodgevallen
-            res.cookie('bp-auth-token', 'admin-auth-token', {
-                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dagen
-                httpOnly: true,
-                path: '/',
-                sameSite: 'lax'
-            });
-            
-            console.log(`Gebruiker ${username} succesvol ingelogd, session ID: ${req.sessionID}`);
-            res.status(200).json({ 
-                success: true, 
-                gebruiker,
-                message: 'Login succesvol'
-            });
-        } else {
-            console.log(`Mislukte login poging voor ${username}`);
-            res.status(401).json({ error: 'Ongeldige gebruikersnaam of wachtwoord' });
-        }
-    } catch (error) {
-        console.error('Error during login:', error);
-        res.status(500).json({ error: 'Er is een fout opgetreden tijdens het inloggen' });
+    const { username, wachtwoord } = req.body;
+    
+    if (!username || !wachtwoord) {
+        return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
     }
+    
+    const gebruiker = gebruikers[username];
+    
+    if (!gebruiker || gebruiker.wachtwoord !== wachtwoord) {
+        return res.status(401).json({ error: 'Ongeldige inloggegevens' });
+    }
+    
+    // Initialiseer de sessie als deze niet bestaat (voor Vercel)
+    req.session = req.session || {};
+    
+    // Sla gebruikersinformatie op in de sessie
+    req.session.gebruiker = gebruiker;
+    
+    // Forceer een sessie save voor Vercel
+    req.session.save((err) => {
+        if (err) {
+            console.error('Fout bij opslaan sessie:', err);
+            return res.status(500).json({ error: 'Serverfout bij het inloggen' });
+        }
+        
+        // Stel ook een backup auth cookie in voor noodgevallen
+        res.cookie('bp-auth-token', 'admin-auth-token', {
+            secure: isVercelProduction,
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dagen
+            path: '/',
+            sameSite: 'lax'
+        });
+        
+        console.log(`Gebruiker ${username} succesvol ingelogd, session ID: ${req.sessionID || 'geen-id'}`);
+        res.json({
+            success: true,
+            gebruiker: {
+                username: gebruiker.username || username,
+                naam: gebruiker.naam,
+                rol: gebruiker.rol
+            }
+        });
+    });
 });
 
 app.post('/api/auth/logout', (req, res) => {
@@ -681,9 +707,9 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.get('/api/auth/check', (req, res) => {
     if (req.session && req.session.gebruiker) {
-        res.json({ 
-            isAuthenticated: true, 
-            gebruiker: req.session.gebruiker 
+        res.json({
+            isAuthenticated: true,
+            gebruiker: req.session.gebruiker
         });
     } else {
         res.json({ isAuthenticated: false });

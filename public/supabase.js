@@ -79,4 +79,27 @@ export async function deleteBot(id) {
         console.error('Error deleting bot:', error);
         return false;
     }
+}
+
+// Functie om een bot bij te werken
+export async function updateBot(id, name, webhookId) {
+    try {
+        console.log('Bijwerken assistent:', { id, name, webhookId });
+        const { data, error } = await supabase
+            .from('bots')
+            .update({ name, webhook_id: webhookId })
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
+        console.log('Assistent bijgewerkt:', data);
+        return data;
+    } catch (error) {
+        console.error('Error updating assistant:', error);
+        return null;
+    }
 } 

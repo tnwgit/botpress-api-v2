@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Botpress Chat - Officiële Package</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #2c6bed;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        
+        .setup-form {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: #2c6bed;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #1a5ac2;
+        }
+        
+        .chat-interface {
+            display: none;
+        }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .message {
+            display: flex;
+            margin-bottom: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .message-text {
+            padding: 10px 15px;
+            border-radius: 18px;
+            line-height: 1.4;
+        }
+        
+        .user-message {
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        
+        .user-message .message-text {
+            background-color: #2c6bed;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .bot-message {
+            align-self: flex-start;
+            margin-right: auto;
+        }
+        
+        .bot-message .message-text {
+            background-color: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #ddd;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 1rem;
+            margin-right: 10px;
+        }
+        
+        .chat-input button {
+            border-radius: 20px;
+        }
+        
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+        }
+        
+        .status.error {
+            background-color: #ffe6e6;
+            color: #d32f2f;
+        }
+        
+        .status.success {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status.info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .typing-indicator {
+            display: none;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .debug-container {
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .debug-log {
+            padding: 3px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .debug-log.error {
+            color: #d32f2f;
+        }
+        
+        .debug-log.success {
+            color: #388e3c;
+        }
+        
+        .debug-log.info {
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Botpress Chat - Officiële Package</h1>
+        </div>
+        
+        <div id="setup-form">
+            <div class="form-group">
+                <label for="webhook-id">Botpress Webhook ID:</label>
+                <input type="text" id="webhook-id" placeholder="bijv. 687a460e-050a-42d3-9420-585a7048c0aa" value="687a460e-050a-42d3-9420-585a7048c0aa">
+            </div>
+            
+            <button id="check-connection-btn">Controleer Verbinding</button>
+            <button id="start-btn" disabled>Start Chat</button>
+            
+            <div id="status-msg" class="status"></div>
+        </div>
+        
+        <div id="chat-interface" style="display: none;">
+            <div class="chat-container">
+                <div id="chat-messages" class="chat-messages"></div>
+                <div id="typing-indicator" class="typing-indicator">Bot is aan het typen...</div>
+                <div class="chat-input">
+                    <input type="text" id="message-input" placeholder="Type een bericht...">
+                    <button id="send-btn">Versturen</button>
+                </div>
+            </div>
+            <button id="reset-btn" style="margin-top: 10px;">Gesprek Herstarten</button>
+        </div>
+        
+        <div class="debug-container">
+            <h2>Debug Informatie</h2>
+            <div class="debug-log" id="console-output"></div>
+        </div>
+    </div>
+    
+    <script>
+        // =============================================
+        // 1. DOM ELEMENTEN - NIET WIJZIGEN BIJ API-AANPASSINGEN
+        // =============================================
+        const setupForm = document.getElementById('setup-form');
+        const webhookIdInput = document.getElementById('webhook-id');
+        const checkConnectionBtn = document.getElementById('check-connection-btn');
+        const startBtn = document.getElementById('start-btn');
+        const statusMsg = document.getElementById('status-msg');
+        const chatInterface = document.getElementById('chat-interface');
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const consoleOutput = document.getElementById('console-output');
+        
+        // =============================================
+        // 2. GLOBALE VARIABELEN - NIET WIJZIGEN BIJ UI-AANPASSINGEN
+        // =============================================
+        let userId = null;
+        let userKey = null;
+        let conversationId = null;
+        let webhookId = null;
+        let client = null;
+        let isTyping = false;
+        let lastMessageId = null;
+        let lastProcessedMessageIds = [];
+        
+        // =============================================
+        // 3. BOTPRESS API CLIENT - NIET WIJZIGEN BIJ UI-AANPASSINGEN
+        // =============================================
+        class BotpressChatClient {
+            constructor(config) {
+                this.webhookId = config.webhookId;
+                this.baseUrl = 'https://chat.botpress.cloud';
+            }
+            
+            async checkConnection() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/${this.webhookId}/hello`);
+                    if (!response.ok) {
+                        throw new Error(`Error: ${response.status} ${response.statusText}`);
+                    }
+                    return await response.text();
+                } catch (error) {
+                    throw new Error(`Connection error: ${error.message}`);
+                }
+            }
+            
+            async createUser(options = {}) {
+                try {
+                    // Gebruik webhook URL zoals in de documentatie
+                    // https://botpress.com/reference/createuser-1
+                    const response = await fetch(`${this.baseUrl}/${this.webhookId}/users`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: options.name || `User-${Date.now()}`,
+                            ...(options.tags && { tags: options.tags })
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Error creating user: ${JSON.stringify(error)}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Volledige create user response:', data);
+                    
+                    // Extraheer het user ID - inspecteeer de JWT token om het ID eruit te halen
+                    let userId = null;
+                    
+                    if (data && data.key) {
+                        try {
+                            // Het ID zit in de JWT token payload
+                            const tokenParts = data.key.split('.');
+                            if (tokenParts.length >= 2) {
+                                const tokenPayload = atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/'));
+                                const payloadObj = JSON.parse(tokenPayload);
+                                userId = payloadObj.id;
+                            }
+                        } catch (e) {
+                            console.error('Kon user ID niet uit token halen:', e);
+                        }
+                    }
+                    
+                    // Gebruik het gevonden ID of een fallback
+                    userId = userId || data.id || 'unknown_user_id';
+                    const userKey = data.key || '';
+                    
+                    console.log('Gebruikte userKey uit response:', userKey);
+                    console.log('User ID uit response:', userId);
+                    
+                    return {
+                        user: { id: userId },
+                        key: userKey
+                    };
+                } catch (error) {
+                    throw new Error(`Error creating user: ${error.message}`);
+                }
+            }
+            
+            async createConversation(options) {
+                try {
+                    // Log de headers voor debugging
+                    console.log('createConversation headers:', {
+                        'x-user-id': options.userId,
+                        'x-user-key': options.userKey
+                    });
+                    
+                    // Volgens het voorbeeld een lege body meesturen
+                    const response = await fetch(`${this.baseUrl}/${this.webhookId}/conversations`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-user-id': options.userId,
+                            'x-user-key': options.userKey,
+                            'accept': 'application/json'
+                        },
+                        body: JSON.stringify({}) // Lege body toevoegen
+                    });
+                    
+                    // Log de response status
+                    console.log('Conversatie aanmaken status:', response.status, response.statusText);
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Error creating conversation: ${JSON.stringify(error)}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Conversatie aanmaken response:', data);
+                    
+                    // Controleer of het ID bestaat in de response
+                    if (!data.id) {
+                        console.error('Geen ID gevonden in conversatie response:', data);
+                        
+                        // Zoek naar een id veld in de response
+                        let conversationId = null;
+                        if (data && typeof data === 'object') {
+                            // Probeer het id te vinden, ongeacht de hoofdletters
+                            for (const key in data) {
+                                if (key.toLowerCase() === 'id') {
+                                    conversationId = data[key];
+                                    break;
+                                }
+                            }
+                            
+                            // Als er geen direct id veld is, check geneste objecten
+                            if (!conversationId) {
+                                for (const key in data) {
+                                    if (typeof data[key] === 'object' && data[key] !== null && data[key].id) {
+                                        conversationId = data[key].id;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (conversationId) {
+                            console.log('Conversatie ID gevonden in alternatief veld:', conversationId);
+                            return { id: conversationId };
+                        }
+                        
+                        throw new Error('Kon geen conversatie ID vinden in de response');
+                    }
+                    
+                    return data;
+                } catch (error) {
+                    throw new Error(`Error creating conversation: ${error.message}`);
+                }
+            }
+            
+            async sendMessage(options) {
+                try {
+                    // Controleer of conversationId is gedefinieerd
+                    if (!options.conversationId) {
+                        throw new Error('conversationId is required but was undefined');
+                    }
+                    
+                    // Log de headers en body voor debugging
+                    console.log('sendMessage headers:', {
+                        'x-user-id': options.userId,
+                        'x-user-key': options.userKey
+                    });
+                    console.log('sendMessage body:', {
+                        conversationId: options.conversationId,
+                        payload: {
+                            type: options.payload.type || 'text',
+                            text: options.payload.text
+                        }
+                    });
+                    
+                    // Volgens documentatie: POST https://chat.botpress.cloud/{webhookUrl}/messages
+                    // Met conversationId in de body (niet conversation_id)
+                    const response = await fetch(`${this.baseUrl}/${this.webhookId}/messages`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-user-id': options.userId,
+                            'x-user-key': options.userKey
+                        },
+                        body: JSON.stringify({
+                            conversationId: options.conversationId,
+                            payload: {
+                                type: options.payload.type || 'text',
+                                text: options.payload.text
+                            }
+                        })
+                    });
+                    
+                    // Log de response status
+                    console.log('Bericht verzenden status:', response.status, response.statusText);
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Error sending message: ${JSON.stringify(error)}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Bericht verzenden response:', data);
+                    return data;
+                } catch (error) {
+                    throw new Error(`Error sending message: ${error.message}`);
+                }
+            }
+            
+            async listMessages(options) {
+                try {
+                    // Debug output van de opties
+                    console.log('listMessages options:', {
+                        userId: options.userId,
+                        userKey: options.userKey,
+                        conversationId: options.conversationId
+                    });
+                    
+                    // Volgens documentatie moet de webhook URL gebruikt worden, niet de API URL
+                    // https://botpress.com/reference/listmessages-1
+                    const response = await fetch(`${this.baseUrl}/${this.webhookId}/conversations/${options.conversationId}/messages`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-user-id': options.userId,
+                            'x-user-key': options.userKey
+                        }
+                    });
+                    
+                    // Log de volledige URL en headers voor debugging
+                    console.log(`Requesting messages from: ${this.baseUrl}/${this.webhookId}/conversations/${options.conversationId}/messages`);
+                    console.log('Headers:', {
+                        'x-user-id': options.userId,
+                        'x-user-key': options.userKey
+                    });
+                    
+                    // Log de volledige response status
+                    console.log('Response status:', response.status, response.statusText);
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Error listing messages: ${JSON.stringify(error)}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Uitgebreide logging van de response
+                    console.log('Ruw antwoord van listMessages:', data);
+                    
+                    // Controleer of de data een array is
+                    if (!Array.isArray(data)) {
+                        // Als het een object is met een messages property die een array is
+                        if (data && typeof data === 'object' && Array.isArray(data.messages)) {
+                            console.log('Response heeft een messages array property, dit wordt gebruikt');
+                            return data.messages;
+                        }
+                        
+                        // Als het een object is met een results property die een array is (alternatief format)
+                        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+                            console.log('Response heeft een results array property, dit wordt gebruikt');
+                            return data.results;
+                        }
+                        
+                        console.warn('Response is not an array and does not contain a messages array:', data);
+                        return []; // Retourneer een lege array
+                    }
+                    
+                    return data;
+                } catch (error) {
+                    throw new Error(`Error listing messages: ${error.message}`);
+                }
+            }
+            
+            async deleteConversation(options) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/${this.webhookId}/conversations/${options.conversationId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-user-id': options.userId,
+                            'x-user-key': options.userKey
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Error deleting conversation: ${JSON.stringify(error)}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Conversatie verwijderen response:', data);
+                    return data;
+                } catch (error) {
+                    throw new Error(`Error deleting conversation: ${error.message}`);
+                }
+            }
+        }
+        
+        // =============================================
+        // 4. HELPER FUNCTIES - NIET WIJZIGEN BIJ UI-AANPASSINGEN
+        // =============================================
+        
+        // Helper functie om webhook ID te extraheren
+        function extractWebhookId(input) {
+            if (!input) return null;
+            
+            // Als het een volledige webhook.botpress.cloud URL is
+            if (input.includes('webhook.botpress.cloud/')) {
+                return input.split('webhook.botpress.cloud/')[1].split('/')[0];
+            }
+            
+            // Als het een volledige chat.botpress.cloud URL is
+            if (input.includes('chat.botpress.cloud/')) {
+                return input.split('chat.botpress.cloud/')[1].split('/')[0];
+            }
+            
+            // Als het een URL is met een ID aan het eind
+            if (input.startsWith('http') && input.includes('/')) {
+                const parts = input.split('/');
+                return parts[parts.length - 1];
+            }
+            
+            // Anders is het waarschijnlijk al een pure ID
+            return input;
+        }
+        
+        // Poll voor nieuwe berichten
+        let pollingInterval = null;
+        
+        function startPollingMessages() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            logToConsole('Start polling voor berichten...', 'info');
+            
+            pollingInterval = setInterval(async () => {
+                try {
+                    // Controleer of conversationId is gedefinieerd
+                    if (!conversationId) {
+                        logToConsole('Geen conversationId beschikbaar voor polling berichten', 'error');
+                        return;
+                    }
+                    
+                    // Haal berichten op
+                    let messages = await client.listMessages({
+                        userId,
+                        userKey,
+                        conversationId
+                    });
+                    
+                    logToConsole(`${messages.length} berichten opgehaald`, 'info');
+                    
+                    if (messages.length > 0) {
+                        console.log('Opgehaalde berichten:', messages);
+                        
+                        // Sorteer berichten op datum, nieuwste laatst
+                        messages.sort((a, b) => {
+                            const dateA = a.created_at ? new Date(a.created_at) : new Date();
+                            const dateB = b.created_at ? new Date(b.created_at) : new Date();
+                            return dateA - dateB;
+                        });
+                        
+                        // Filter nieuwe berichten van de bot (niet van onszelf)
+                        const newMessages = messages.filter(msg => {
+                            // Check of we dit bericht al hebben verwerkt
+                            if (lastProcessedMessageIds.includes(msg.id)) {
+                                return false;
+                            }
+                            
+                            // Voeg toe aan verwerkte berichten
+                            lastProcessedMessageIds.push(msg.id);
+                            
+                            // Bepaal of het een bot bericht is (niet van de gebruiker)
+                            const isBotMessage = msg.direction === 'incoming' || 
+                                                msg.userId !== userId ||
+                                                (msg.payload && msg.payload.type === 'bot');
+                            
+                            console.log('Bericht verwerken:', {
+                                id: msg.id,
+                                direction: msg.direction,
+                                isBotMessage: isBotMessage,
+                                payload: msg.payload,
+                                text: msg.payload?.text || '(Geen tekst)'
+                            });
+                            
+                            return isBotMessage;
+                        });
+                        
+                        // Voeg nieuwe berichten toe aan de UI
+                        for (const msg of newMessages) {
+                            const messageText = msg.payload?.text || '(Geen tekst)';
+                            logToConsole(`Bot: ${messageText}`, 'info');
+                            addMessage(messageText, false);
+                        }
+                    }
+                    
+                } catch (error) {
+                    if (error.message.includes('ERR_INTERNET_DISCONNECTED')) {
+                        logToConsole('Netwerkfout bij ophalen berichten: Controleer je internetverbinding', 'error');
+                    } else {
+                        logToConsole(`Fout bij ophalen berichten: ${error.message}`, 'error');
+                    }
+                }
+            }, 2000);
+        }
+        
+        function stopPollingMessages() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                logToConsole('Polling voor berichten gestopt', 'info');
+            }
+        }
+        
+        // =============================================
+        // 5. UI INTERACTIE FUNCTIES - DEZE KUN JE AANPASSEN ZONDER API-FUNCTIES TE BEÏNVLOEDEN
+        // =============================================
+        
+        // Geavanceerde console logging
+        function logToConsole(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleOutput.appendChild(p);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        // Status bericht tonen
+        function showStatus(message, type) {
+            statusMsg.textContent = message;
+            statusMsg.className = `status ${type}`;
+            logToConsole(message, type);
+        }
+        
+        // Bericht toevoegen aan chat
+        function addMessage(message, isUser = false) {
+            console.log(`Bericht toevoegen aan UI: "${message}" (${isUser ? 'gebruiker' : 'bot'})`);
+            
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(isUser ? 'user-message' : 'bot-message');
+            
+            const textElement = document.createElement('div');
+            textElement.classList.add('message-text');
+            textElement.textContent = message;
+            
+            messageElement.appendChild(textElement);
+            
+            // Voeg bericht toe aan de container
+            chatMessages.appendChild(messageElement);
+            
+            // Scroll naar beneden
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Typing indicator tonen/verbergen
+        function showTyping(visible) {
+            isTyping = visible;
+            typingIndicator.className = visible ? 'typing-indicator visible' : 'typing-indicator';
+        }
+        
+        // =============================================
+        // 6. CHAT FLOW FUNCTIES - COMBINEREN UI EN API
+        // =============================================
+        
+        // Controleer de verbinding
+        async function checkConnection() {
+            const rawWebhookId = webhookIdInput.value.trim();
+            if (!rawWebhookId) {
+                showStatus('Voer een geldige webhook ID in', 'error');
+                return false;
+            }
+            
+            webhookId = extractWebhookId(rawWebhookId);
+            
+            // Check of de webhook ID goed geformatteerd is
+            if (!webhookId || webhookId.length < 10) {
+                showStatus('De webhook ID lijkt niet geldig. Controleer de ID in je Botpress dashboard.', 'error');
+                return false;
+            }
+            
+            showStatus('Verbinding controleren...', 'info');
+            
+            try {
+                // Creëer een nieuwe client
+                client = new BotpressChatClient({
+                    webhookId: webhookId
+                });
+                
+                // Test de verbinding
+                const result = await client.checkConnection();
+                logToConsole(`Verbinding met Botpress API succesvol: ${result}`, 'success');
+                showStatus(`Verbinding succesvol: ${result}`, 'success');
+                startBtn.disabled = false;
+                return true;
+            } catch (error) {
+                logToConsole(`Verbindingsfout: ${error.message}`, 'error');
+                showStatus(`Verbindingsfout: ${error.message}`, 'error');
+                startBtn.disabled = true;
+                return false;
+            }
+        }
+        
+        // Start de chat - volg exact de stappen in de documentatie
+        async function startChat() {
+            showStatus('Chat starten...', 'info');
+            
+            try {
+                // 1. Maak een gebruiker aan
+                logToConsole('Stap 1: Gebruiker aanmaken...', 'info');
+                const userResult = await client.createUser({
+                    name: `User-${Date.now()}`,
+                    tags: { source: 'web-client' }
+                });
+                
+                userId = userResult.user.id;
+                userKey = userResult.key;
+                
+                logToConsole(`Gebruiker aangemaakt met ID: ${userId}`, 'success');
+                logToConsole(`User key: ${userKey}`, 'info');
+                
+                // 2. Maak een conversatie aan
+                logToConsole('Stap 2: Conversatie aanmaken...', 'info');
+                const conversation = await client.createConversation({
+                    userId,
+                    userKey
+                });
+                
+                // Log de volledige response
+                console.log('Volledige conversatie response:', conversation);
+                
+                // Zorg ervoor dat we een ID hebben
+                if (!conversation || !conversation.id) {
+                    throw new Error('Geen geldige conversatie ID ontvangen van de server');
+                }
+                
+                conversationId = conversation.id;
+                logToConsole(`Conversatie aangemaakt met ID: ${conversationId}`, 'success');
+                
+                // UI bijwerken
+                showStatus('Chat gestart!', 'success');
+                setupForm.style.display = 'none';
+                chatInterface.style.display = 'block';
+                
+                // Voeg welkomstbericht toe (lokaal, niet via API)
+                addMessage('Hallo! Hoe kan ik je helpen?', false);
+                
+                // Start polling voor berichten
+                startPollingMessages();
+                
+                // Focus op invoerveld
+                messageInput.focus();
+                
+                // We sturen geen initieel bericht meer, wacht tot de gebruiker iets stuurt
+                
+            } catch (error) {
+                logToConsole(`Fout bij starten chat: ${error.message}`, 'error');
+                showStatus(`Fout bij starten chat: ${error.message}`, 'error');
+            }
+        }
+        
+        // Stuur een gebruikersbericht
+        async function sendUserMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+            
+            // Wis invoerveld
+            messageInput.value = '';
+            
+            // Voeg bericht toe aan chat
+            addMessage(text, true);
+            
+            // Toon typing indicator
+            showTyping(true);
+            
+            try {
+                logToConsole(`Bericht versturen: ${text}`, 'info');
+                const messageResult = await client.sendMessage({
+                    userId,
+                    userKey,
+                    conversationId,
+                    payload: {
+                        type: 'text',
+                        text
+                    }
+                });
+                
+                logToConsole(`Bericht verzonden met ID: ${messageResult.id}`, 'success');
+            } catch (error) {
+                logToConsole(`Fout bij versturen bericht: ${error.message}`, 'error');
+                showTyping(false);
+                addMessage('Er is een fout opgetreden bij het versturen van je bericht.', false);
+            }
+        }
+        
+        // Reset de chat
+        async function resetChat() {
+            if (!client || !userId || !userKey || !conversationId) return;
+            
+            try {
+                // Stop polling
+                stopPollingMessages();
+                
+                logToConsole('Chat resetten...', 'info');
+                
+                // Verwijder de huidige conversatie
+                await client.deleteConversation({
+                    userId,
+                    userKey,
+                    conversationId
+                });
+                
+                logToConsole('Vorige conversatie verwijderd', 'success');
+                
+                // Wis berichten
+                chatMessages.innerHTML = '';
+                
+                // Reset verwerkte berichten lijst
+                lastProcessedMessageIds = [];
+                
+                // Maak een nieuwe conversatie aan
+                const conversation = await client.createConversation({
+                    userId,
+                    userKey
+                });
+                
+                conversationId = conversation.id;
+                logToConsole(`Nieuwe conversatie aangemaakt: ${conversationId}`, 'success');
+                
+                // Start polling opnieuw
+                startPollingMessages();
+                
+                // Voeg welkomstbericht toe (lokaal)
+                addMessage('Hallo! Hoe kan ik je helpen?', false);
+                
+                showStatus('Chat herstart!', 'success');
+            } catch (error) {
+                logToConsole(`Fout bij herstarten chat: ${error.message}`, 'error');
+                showStatus(`Fout bij herstarten chat: ${error.message}`, 'error');
+            }
+        }
+        
+        // =============================================
+        // 7. EVENT LISTENERS - DEZE KUN JE AANPASSEN ZONDER API-FUNCTIES TE BEÏNVLOEDEN
+        // =============================================
+        checkConnectionBtn.addEventListener('click', checkConnection);
+        startBtn.addEventListener('click', startChat);
+        sendBtn.addEventListener('click', sendUserMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendUserMessage();
+            }
+        });
+        
+        resetBtn.addEventListener('click', resetChat);
+        
+        // Initialisatie
+        logToConsole('Chat client geladen. Klaar om te beginnen.', 'info');
+    </script>
+</body>
+</html> 

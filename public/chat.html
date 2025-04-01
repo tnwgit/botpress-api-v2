@@ -164,28 +164,26 @@
         }
 
         .welcome-image-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            max-width: 80%;
-            max-height: 60%;
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 10;
-            transition: opacity 0.3s ease-out;
+            width: 100%;
+            height: 200px;
+            margin: 20px 0;
+            padding: 10px;
+            transition: opacity 0.5s ease;
         }
 
         .welcome-image-container img {
             max-width: 100%;
-            max-height: 100%;
+            max-height: 200px;
             object-fit: contain;
+            display: block;
+            margin: 0 auto;
         }
 
         .welcome-image-container.hidden {
-            opacity: 0;
-            pointer-events: none;
+            display: none;
         }
 
         .message {
@@ -606,22 +604,11 @@
         let messageHistory = [];
         let isProcessing = false;
         let chatStyling = null;
+        let isInitialMessage = false;
 
         // Bij pagina laden
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('Pagina geladen, initialiseren chat...');
-            
-            // Wis oude chat data
-            localStorage.removeItem('userId');
-            localStorage.removeItem('userKey');
-            localStorage.removeItem('conversationId');
-            localStorage.removeItem('lastBotMessageId');
-            
-            // Reset lokale variabelen
-            userId = null;
-            userKey = null;
-            conversationId = null;
-            lastBotMessageId = null;
             
             // Controleer URL parameters voor botId
             const urlParams = new URLSearchParams(window.location.search);
@@ -630,26 +617,39 @@
             if (botIdFromUrl) {
                 // Als we een botId in de URL hebben, haal dan de bot gegevens op
                 try {
-                    const response = await fetch('/api/bots');
+                    const response = await fetch(`/api/bots?botId=${botIdFromUrl}`);
                     const bots = await response.json();
-                    const selectedBot = bots.find(bot => bot.id === botIdFromUrl);
                     
-                    if (selectedBot) {
+                    if (Array.isArray(bots) && bots.length > 0) {
+                        const selectedBot = bots[0];
+                        
                         // Update localStorage met de juiste bot gegevens
                         localStorage.setItem('botId', selectedBot.id);
                         localStorage.setItem('botName', selectedBot.name);
-                        localStorage.setItem('webhookId', selectedBot.webhook_id);
+                        localStorage.setItem('currentWebhookId', selectedBot.webhook_id);
                         
                         // Update lokale variabelen
                         webhookId = selectedBot.webhook_id;
                         botName = selectedBot.name;
+                    } else {
+                        console.error('Geen bot gevonden met ID:', botIdFromUrl);
                     }
                 } catch (error) {
                     console.error('Fout bij ophalen bot gegevens:', error);
                 }
             }
 
+            // Controleer of we geldige bot gegevens hebben
+            if (!webhookId) {
+                webhookId = localStorage.getItem('currentWebhookId');
+            }
+            
+            if (!botName) {
+                botName = localStorage.getItem('botName');
+            }
+
             if (!webhookId || !botName) {
+                console.error('Geen geldige bot gegevens gevonden');
                 window.location.href = '/';
                 return;
             }
@@ -712,6 +712,14 @@
             
             chatMessages.insertBefore(messageDiv, typingIndicator);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Voeg bericht toe aan de historie als het geen initieel bericht is
+            if (!isInitialMessage) {
+                messageHistory.push({
+                    role: isUser ? 'user' : 'bot',
+                    content: text
+                });
+            }
         }
 
         // Initialiseer chat sessie
@@ -721,16 +729,30 @@
                 
                 // Haal bot gegevens op
                 const botName = localStorage.getItem('botName');
-                const webhookId = localStorage.getItem('webhookId');
-                console.log('Opgehaalde gegevens:', { botName, webhookId });
-
-                if (!webhookId) {
+                const currentWebhookId = localStorage.getItem('currentWebhookId');
+                console.log('Opgehaalde gegevens:', { botName, currentWebhookId });
+                
+                if (!currentWebhookId) {
                     console.error('Geen webhookId gevonden in localStorage');
                     throw new Error('Geen webhookId gevonden');
                 }
-
+                
+                // Update de globale webhookId variabele
+                webhookId = currentWebhookId;
+                
+                // Controleer of we een bestaande sessie hebben
+                userId = localStorage.getItem('userId');
+                userKey = localStorage.getItem('userKey');
+                conversationId = localStorage.getItem('conversationId');
+                
+                if (userId && userKey && conversationId) {
+                    console.log('Bestaande sessie gevonden, gebruiken...');
+                    return true;
+                }
+                
                 // Maak nieuwe gebruiker aan
                 console.log('Maak nieuwe gebruiker aan...');
+                showTypingIndicator();
                 const userResponse = await fetch('/api/user', {
                     method: 'POST',
                     headers: {
@@ -738,22 +760,24 @@
                     },
                     body: JSON.stringify({ webhookId })
                 });
-
+                
                 if (!userResponse.ok) {
+                    hideTypingIndicator();
                     const errorData = await userResponse.json();
                     console.error('Fout bij aanmaken gebruiker:', errorData);
                     throw new Error(errorData.error || 'Fout bij aanmaken gebruiker');
                 }
-
+                
                 const userData = await userResponse.json();
                 console.log('Gebruiker aangemaakt:', userData);
-
+                
                 // Maak nieuwe conversatie aan
                 console.log('Maak nieuwe conversatie aan...');
                 const conversationResponse = await fetch('/api/conversation', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'x-user-key': userData.key
                     },
                     body: JSON.stringify({ 
                         userId: userData.user.id,
@@ -761,32 +785,33 @@
                         webhookId: webhookId 
                     })
                 });
-
+                
                 if (!conversationResponse.ok) {
+                    hideTypingIndicator();
                     const errorData = await conversationResponse.json();
                     console.error('Fout bij aanmaken conversatie:', errorData);
-                    throw new Error(errorData.error || 'Fout bij aanmaken conversatie');
+                    throw new Error(errorData.error || `An invalid error occurred: ${JSON.stringify(errorData)}`);
                 }
-
+                
                 const conversationData = await conversationResponse.json();
                 console.log('Conversatie aangemaakt:', conversationData);
-
+                hideTypingIndicator();
+                
                 // Update globale variabelen
                 userId = userData.user.id;
                 userKey = userData.key;
                 conversationId = conversationData.id;
-
+                
                 // Sla gegevens op in localStorage
                 localStorage.setItem('userId', userId);
                 localStorage.setItem('userKey', userKey);
                 localStorage.setItem('conversationId', conversationId);
-                localStorage.setItem('lastBotMessageId', conversationData.lastBotMessageId || '');
-                localStorage.setItem('webhookId', webhookId);
-
+                
                 console.log('Chat succesvol geïnitialiseerd');
                 return true;
             } catch (error) {
                 console.error('Fout bij initialiseren chat:', error);
+                hideTypingIndicator();
                 return false;
             }
         }
@@ -800,7 +825,7 @@
                 }
 
                 // Haal de webhookId op
-                const webhookId = localStorage.getItem('webhookId');
+                const webhookId = localStorage.getItem('currentWebhookId');
                 if (!webhookId) {
                     console.error('Geen webhookId gevonden');
                     return null;
@@ -831,15 +856,6 @@
                 // Sorteer berichten op createdAt, nieuwste eerst
                 messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 
-                // Debug info voor berichten
-                const simplifiedMessages = messages.map(m => ({
-                    id: m.id,
-                    isUser: m.userId === userId,
-                    createdAt: m.createdAt,
-                    text: m.payload?.text || m.payload?.message || 'geen tekst'
-                }));
-                console.log('Ontvangen berichten:', simplifiedMessages);
-
                 // Vind het laatste gebruikersbericht
                 const userMessages = messages.filter(m => m.userId === userId);
                 if (userMessages.length === 0) {
@@ -851,12 +867,6 @@
                 userMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 const lastUserMessage = userMessages[0];
                 
-                console.log('Laatste gebruikersbericht:', {
-                    id: lastUserMessage.id,
-                    createdAt: lastUserMessage.createdAt,
-                    text: lastUserMessage.payload?.text || 'geen tekst'
-                });
-
                 // Vind alle botberichten na het laatste gebruikersbericht
                 const lastUserTime = new Date(lastUserMessage.createdAt);
                 const botMessagesAfterUser = messages.filter(m => 
@@ -869,21 +879,14 @@
                     botMessagesAfterUser.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                     const latestBotMessage = botMessagesAfterUser[0];
                     
-                    console.log('Nieuw bot bericht gevonden:', {
-                        id: latestBotMessage.id,
-                        createdAt: latestBotMessage.createdAt,
-                        text: latestBotMessage.payload?.text || latestBotMessage.payload?.message || 'geen tekst'
-                    });
-
                     // Controleer of we dit bericht al eerder hebben verwerkt
                     if (lastBotMessageId === latestBotMessage.id) {
-                        console.log('Dit bericht is al eerder verwerkt, we slaan het over', lastBotMessageId);
+                        console.log('Dit bericht is al eerder verwerkt, we slaan het over');
                         return null;
                     }
 
                     // Onthoud dit bericht ID zodat we het niet opnieuw tonen
                     lastBotMessageId = latestBotMessage.id;
-                    localStorage.setItem('lastBotMessageId', latestBotMessage.id);
 
                     // Verwerk het bericht
                     if (latestBotMessage.payload) {
@@ -911,17 +914,17 @@
             if (!message) return;
 
             sendButton.disabled = true;
-            showTypingIndicator();
+            isProcessing = true;
             messageInput.value = '';
             messageInput.style.height = '40px';
 
+            // Direct het bericht toevoegen aan de chat
+            addMessage(message, true);
+            
+            // Toon de typing indicator
+            showTypingIndicator();
+
             try {
-                // Reset lastBotMessageId bij elk nieuw bericht
-                lastBotMessageId = null;
-
-                // Voeg het bericht toe aan de chat
-                addMessage(message, true);
-
                 // Controleer of we een geldige chat sessie hebben
                 if (!userId || !userKey || !conversationId) {
                     if (!await initializeChat()) {
@@ -930,12 +933,12 @@
                 }
 
                 // Haal de webhookId op uit localStorage
-                const webhookId = localStorage.getItem('webhookId');
+                const webhookId = localStorage.getItem('currentWebhookId');
                 if (!webhookId) {
                     throw new Error('Geen webhookId gevonden');
                 }
 
-                console.log('Versturen bericht met webhook ID:', webhookId);
+                console.log('Versturen bericht...');
                 
                 const messageResponse = await fetch('/api/message', {
                     method: 'POST',
@@ -958,19 +961,20 @@
                 }
                 console.log('Bericht succesvol verzonden, wacht op antwoord...');
                 
-                // Start polling voor antwoord direct na het versturen
+                // Start polling voor antwoord
                 pollForBotResponse();
             } catch (error) {
                 console.error('Error:', error);
                 hideTypingIndicator();
                 addMessage('Sorry, er ging iets mis bij het versturen van je bericht. Probeer het later opnieuw.');
                 sendButton.disabled = false;
+                isProcessing = false;
                 messageInput.focus();
             }
         }
 
-        // Nieuwe functie voor polling
-        async function pollForBotResponse() {
+        // Functie voor polling
+        function pollForBotResponse() {
             const maxPolls = 20;
             const pollInterval = 1000; // 1 seconde tussen elke poll
             let pollCount = 0;
@@ -986,6 +990,7 @@
                         hideTypingIndicator();
                         addMessage(botResponse);
                         sendButton.disabled = false;
+                        isProcessing = false;
                         messageInput.focus();
                         console.log('Bot antwoord ontvangen en getoond!');
                         return;
@@ -996,6 +1001,7 @@
                         hideTypingIndicator();
                         addMessage("Excuses, de chatbot is momenteel druk bezet of reageert niet. Probeer het later nog eens, of neem contact op via een ander kanaal.");
                         sendButton.disabled = false;
+                        isProcessing = false;
                         messageInput.focus();
                         console.log('Maximaal aantal polls bereikt, geen antwoord ontvangen.');
                     }
@@ -1199,11 +1205,20 @@
                 const img = document.createElement('img');
                 img.src = styling.general.welcomeImage;
                 img.alt = 'Welkom';
+                img.onload = function() {
+                    console.log(`Welkomstafbeelding geladen, afmetingen: ${this.naturalWidth}x${this.naturalHeight}`);
+                };
+                img.onerror = function() {
+                    console.error('Fout bij laden van welkomstafbeelding');
+                    welcomeImageContainer.classList.add('hidden');
+                };
                 welcomeImageContainer.innerHTML = '';
                 welcomeImageContainer.appendChild(img);
                 welcomeImageContainer.classList.remove('hidden');
+                console.log('Welkomstafbeelding toegevoegd aan chat');
             } else {
                 welcomeImageContainer.classList.add('hidden');
+                console.log('Geen welkomstafbeelding gedefinieerd');
             }
 
             // Suggestiepanel styling
@@ -1295,6 +1310,75 @@
             // Ga naar chat pagina
             window.location.href = '/chat.html';
         }
+
+        // Nieuwe functie om huidige berichten op te halen
+        async function fetchCurrentMessages() {
+            try {
+                if (!userId || !userKey || !conversationId) {
+                    return null;
+                }
+
+                const webhookId = localStorage.getItem('webhookId');
+                if (!webhookId) {
+                    return null;
+                }
+
+                const response = await fetch(`/api/messages/${conversationId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-user-key': userKey,
+                        'x-webhook-id': webhookId,
+                        'x-user-id': userId
+                    }
+                });
+
+                if (!response.ok) {
+                    return null;
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Fout bij ophalen bestaande berichten:', error);
+                return null;
+            }
+        }
+
+        // Vang 'Enter' toets af voor snel verzenden
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey && !isProcessing) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // Debounce functie implementatie
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    func.apply(context, args);
+                }, wait);
+            };
+        }
+        
+        // Optimaliseer input verwerking met debounce
+        messageInput.addEventListener('input', debounce(function() {
+            const empty = this.value.trim() === '';
+            sendButton.disabled = empty || isProcessing;
+            
+            // Pas hoogte van textarea dynamisch aan
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        }, 50));
+        
+        // Verberg de welkomstafbeelding bij het eerste bericht
+        messageInput.addEventListener('focus', function() {
+            document.getElementById('welcomeImageContainer').classList.add('hidden');
+        });
     </script>
 </body>
 </html> 

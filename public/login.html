@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Botpress Admin</title>
+    <link rel="icon" type="image/png" href="assets/images/favicon.png" />
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f8;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-box {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo img {
+            width: 180px;
+            height: auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+        }
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #4a4a4a;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <div class="logo">
+                <img src="assets/images/botpress-logo.svg" alt="Botpress Logo">
+            </div>
+            <h1>Login bij Admin Dashboard</h1>
+            <form id="loginForm" method="post" action="/api/auth/login">
+                <div class="form-group">
+                    <label for="username">Gebruikersnaam</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Wachtwoord</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <div id="errorMessage" class="error-message">
+                    Ongeldige gebruikersnaam of wachtwoord
+                </div>
+                <div class="form-group">
+                    <button type="submit">Inloggen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wis eventuele oude login sessions
+            localStorage.removeItem('loginRedirected');
+            
+            const loginForm = document.getElementById('loginForm');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                // Validatie
+                if (!username || !password) {
+                    errorMessage.textContent = 'Gebruikersnaam en wachtwoord zijn verplicht';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                // Reset de error message
+                errorMessage.style.display = 'none';
+                
+                // Toon loading indicator
+                const loginButton = document.querySelector('button[type="submit"]');
+                const originalButtonText = loginButton.textContent;
+                loginButton.disabled = true;
+                loginButton.textContent = 'Inloggen...';
+                
+                // Verzend het formulier met de juiste content type
+                fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include', // Belangrijk: zorg dat cookies worden meegestuurd
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Inloggen mislukt');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Login succesvol
+                    console.log('Login succesvol, sessie aangemaakt', data);
+                    
+                    // Check of er een pending styling is opgeslagen
+                    const hasPendingStyling = sessionStorage.getItem('pendingStyling');
+                    
+                    // Check of er een redirect parameter is
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirectUrl = urlParams.get('redirect');
+                    
+                    // Controleer de sessie voor het redirect
+                    fetch('/api/auth/check', {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(checkData => {
+                        console.log('Sessie check na login:', checkData);
+                        
+                        // Vertraging toevoegen voor betrouwbare redirect met sessie
+                        setTimeout(() => {
+                            if (redirectUrl) {
+                                console.log('Redirect naar:', redirectUrl);
+                                window.location.href = redirectUrl;
+                            } else {
+                                window.location.href = '/index.html';
+                            }
+                        }, 500); // Korte vertraging voor betere sessiebehandeling
+                    })
+                    .catch(error => {
+                        console.error('Sessie check error:', error);
+                        alert('Er is een fout opgetreden bij het verifiëren van je sessie. Probeer de pagina te vernieuwen.');
+                    });
+                })
+                .catch(error => {
+                    // Reset login button
+                    loginButton.disabled = false;
+                    loginButton.textContent = originalButtonText;
+                    
+                    console.error('Login error:', error);
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = 'block';
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

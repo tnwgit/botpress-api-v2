@@ -4,48 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Assistent Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="supabase.js"></script>
     <script type="module">
-        import { getBots, addBot, deleteBot } from './supabase.js';
+        import { getBots, addBot, deleteBot, updateBot } from './supabase.js';
 
-        // Functie om de botlijst bij te werken
-        async function updateBotList() {
+        // Exporteer functies naar window object voor onclick handlers
+        window.editAssistant = editAssistant;
+        window.addNewAssistant = handleAddAssistant;
+        window.removeAssistant = handleRemoveAssistant;
+        window.handleStartChat = handleStartChat;
+        window.handleAssistantStyling = handleAssistantStyling;
+        
+        // Auth check bij laden van de pagina
+        document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const bots = await getBots();
-                const botList = document.getElementById('botList');
-                botList.innerHTML = '';
+                // Controleer of gebruiker is ingelogd
+                const response = await fetch('/api/auth/check', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
                 
-                if (!bots || bots.length === 0) {
-                    botList.innerHTML = '<div class="empty-state">Nog geen bots geconfigureerd</div>';
+                if (!data.isAuthenticated) {
+                    // Stuur door naar login pagina indien niet ingelogd
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    return;
+                }
+                
+                // Toon huidige gebruiker
+                document.getElementById('currentUser').textContent = `Ingelogd als: ${data.gebruiker.naam}`;
+                
+                // Update assistentenlijst
+                updateAssistantList();
+                
+                // Event handlers instellen
+                document.getElementById('addAssistantBtn').addEventListener('click', function() {
+                    document.getElementById('assistantFormTitle').textContent = 'Nieuwe Assistent Toevoegen';
+                    document.getElementById('assistantName').value = '';
+                    document.getElementById('webhookId').value = '';
+                    document.getElementById('submitAssistantBtn').textContent = 'Toevoegen';
+                    document.getElementById('submitAssistantBtn').onclick = handleAddAssistant;
+                    document.querySelector('.add-assistant-form').style.display = 'block';
+                });
+                
+                // Stel uitlog knop in
+                document.getElementById('logoutBtn').addEventListener('click', logout);
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = '/login.html';
+            }
+        });
+        
+        // Functie om uit te loggen
+        function logout() {
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Redirect naar login pagina na uitloggen
+                window.location.href = '/login.html';
+            })
+            .catch(error => {
+                console.error('Uitloggen mislukt:', error);
+                // Redirect toch naar login pagina
+                window.location.href = '/login.html';
+            });
+        }
+        
+        // Functie om de assistentenlijst bij te werken
+        async function updateAssistantList() {
+            try {
+                const assistants = await getBots();
+                const assistantList = document.getElementById('assistantList');
+                assistantList.innerHTML = '';
+                
+                if (!assistants || assistants.length === 0) {
+                    assistantList.innerHTML = '<div class="empty-state">Nog geen assistenten geconfigureerd</div>';
                     return;
                 }
 
-                bots.forEach(bot => {
-                    const botItem = document.createElement('div');
-                    botItem.className = 'bot-item';
-                    botItem.innerHTML = `
-                        <div class="bot-info">
-                            <h3>${bot.name}</h3>
-                            <button class="action-button edit-bot" onclick="editBot('${bot.id}', '${bot.name}', '${bot.webhook_id}')" title="Bot bewerken">
+                assistants.forEach(assistant => {
+                    const assistantItem = document.createElement('div');
+                    assistantItem.className = 'assistant-item';
+                    assistantItem.innerHTML = `
+                        <div class="assistant-info">
+                            <h3>${assistant.name}</h3>
+                            <button class="action-button edit-assistant" onclick="editAssistant('${assistant.id}', '${assistant.name}', '${assistant.webhook_id}')" title="Assistent bewerken">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                                 </svg>
                             </button>
                         </div>
-                        <div class="bot-actions">
-                            <button class="action-button start-chat" onclick="handleStartChat('${bot.id}', '${bot.name}', '${bot.webhook_id}')" title="Start een gesprek">
+                        <div class="assistant-actions">
+                            <button class="action-button start-chat" onclick="handleStartChat('${assistant.id}', '${assistant.name}', '${assistant.webhook_id}')" title="Start een gesprek">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                                 </svg>
                                 Chat
                             </button>
-                            <a href="/bot-styling.html?botId=${bot.id}" class="styling-link" title="Pas de styling aan">
+                            <a href="/bot-styling.html?botId=${assistant.id}" class="styling-link" onclick="handleAssistantStyling('${assistant.id}', '${assistant.name}')" title="Pas de styling aan">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="12" cy="12" r="3"></circle>
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                                 </svg>
                                 Styling
                             </a>
-                            <button class="action-button delete-bot" onclick="deleteBot('${bot.id}')" title="Bot verwijderen">
+                            <button class="action-button delete-assistant" onclick="removeAssistant('${assistant.id}')" title="Assistent verwijderen">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18"></path>
                                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
@@ -54,17 +120,17 @@
                             </button>
                         </div>
                     `;
-                    botList.appendChild(botItem);
+                    assistantList.appendChild(assistantItem);
                 });
             } catch (error) {
-                console.error('Error updating bot list:', error);
-                document.getElementById('botList').innerHTML = '<div class="error">Er is een fout opgetreden bij het laden van de bots</div>';
+                console.error('Error updating assistant list:', error);
+                document.getElementById('assistantList').innerHTML = '<div class="error">Er is een fout opgetreden bij het laden van de assistenten</div>';
             }
         }
 
-        // Functie om een nieuwe bot toe te voegen
-        async function handleAddBot() {
-            const nameInput = document.getElementById('botName');
+        // Functie om een nieuwe assistent toe te voegen
+        async function handleAddAssistant() {
+            const nameInput = document.getElementById('assistantName');
             const webhookInput = document.getElementById('webhookId');
             const name = nameInput.value.trim();
             const webhookId = webhookInput.value.trim();
@@ -75,40 +141,41 @@
             }
 
             try {
-                const bot = await addBot(name, webhookId);
-                if (bot) {
+                const assistant = await addBot(name, webhookId);
+                if (assistant) {
                     nameInput.value = '';
                     webhookInput.value = '';
-                    await updateBotList();
+                    document.querySelector('.add-assistant-form').style.display = 'none';
+                    await updateAssistantList();
                 } else {
-                    alert('Er is een fout opgetreden bij het toevoegen van de bot');
+                    alert('Er is een fout opgetreden bij het toevoegen van de assistent');
                 }
             } catch (error) {
-                console.error('Error adding bot:', error);
-                alert('Er is een fout opgetreden bij het toevoegen van de bot');
+                console.error('Error adding assistant:', error);
+                alert('Er is een fout opgetreden bij het toevoegen van de assistent');
             }
         }
 
-        // Functie om een bot te verwijderen
-        async function handleRemoveBot(id) {
-            if (confirm('Weet je zeker dat je deze bot wilt verwijderen?')) {
+        // Functie om een assistent te verwijderen
+        async function handleRemoveAssistant(id) {
+            if (confirm('Weet je zeker dat je deze assistent wilt verwijderen?')) {
                 try {
                     const success = await deleteBot(id);
                     if (success) {
-                        await updateBotList();
+                        await updateAssistantList();
                     } else {
-                        alert('Er is een fout opgetreden bij het verwijderen van de bot');
+                        alert('Er is een fout opgetreden bij het verwijderen van de assistent');
                     }
                 } catch (error) {
-                    console.error('Error removing bot:', error);
-                    alert('Er is een fout opgetreden bij het verwijderen van de bot');
+                    console.error('Error removing assistant:', error);
+                    alert('Er is een fout opgetreden bij het verwijderen van de assistent');
                 }
             }
         }
 
         // Functie om chat te starten
-        function handleStartChat(botId, botName, webhookId) {
-            console.log('Start chat met:', { botId, botName, webhookId });
+        function handleStartChat(assistantId, assistantName, webhookId) {
+            console.log('Start chat met:', { assistantId, assistantName, webhookId });
             
             // Wis alle bestaande chat data
             localStorage.removeItem('userId');
@@ -118,28 +185,35 @@
             localStorage.removeItem('botName');
             localStorage.removeItem('webhookId');
             
-            // Sla nieuwe bot gegevens op
-            localStorage.setItem('botId', botId);
-            localStorage.setItem('botName', botName);
+            // Sla nieuwe assistent gegevens op
+            localStorage.setItem('botId', assistantId);
+            localStorage.setItem('botName', assistantName);
             localStorage.setItem('webhookId', webhookId);
             
-            console.log('Bot gegevens opgeslagen in localStorage');
+            console.log('Assistent gegevens opgeslagen in localStorage');
             
             // Ga naar chat pagina
-            window.location.href = `/chat.html?botId=${botId}`;
+            window.location.href = `/chat.html?botId=${assistantId}`;
         }
 
-        // Functie om een bot te bewerken
-        async function editBot(id, name, webhookId) {
+        // Functie om styling te configureren
+        function handleAssistantStyling(assistantId, assistantName) {
+            console.log(`Styling configureren voor ${assistantName} (ID: ${assistantId})`);
+            // De standaard href handelt de navigatie af
+        }
+
+        // Functie om een assistent te bewerken
+        async function editAssistant(id, name, webhookId) {
             // Vul de formuliervelden met de huidige waarden
-            document.getElementById('botName').value = name;
+            document.getElementById('assistantFormTitle').textContent = 'Assistent Wijzigen';
+            document.getElementById('assistantName').value = name;
             document.getElementById('webhookId').value = webhookId;
             
-            // Verberg de 'Bot Toevoegen' knop en toon een 'Wijzigingen Opslaan' knop
-            const addBotButton = document.querySelector('.form-group button.start-chat');
-            addBotButton.textContent = 'Wijzigingen Opslaan';
-            addBotButton.onclick = async () => {
-                const newName = document.getElementById('botName').value.trim();
+            // Wijzig de knop voor het opslaan van wijzigingen
+            const submitBtn = document.getElementById('submitAssistantBtn');
+            submitBtn.textContent = 'Wijzigingen Opslaan';
+            submitBtn.onclick = async () => {
+                const newName = document.getElementById('assistantName').value.trim();
                 const newWebhookId = document.getElementById('webhookId').value.trim();
                 
                 if (!newName || !newWebhookId) {
@@ -148,48 +222,32 @@
                 }
                 
                 try {
-                    // Update de bot via de API
-                    const response = await fetch(`/api/bots/${id}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            name: newName,
-                            webhook_id: newWebhookId
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Fout bij bijwerken bot');
+                    // Update de assistent via de updateBot functie
+                    const result = await updateBot(id, newName, newWebhookId);
+                    
+                    if (result) {
+                        // Reset het formulier
+                        document.getElementById('assistantName').value = '';
+                        document.getElementById('webhookId').value = '';
+                        document.querySelector('.add-assistant-form').style.display = 'none';
+                        
+                        // Vernieuw de assistentenlijst
+                        await updateAssistantList();
+                    } else {
+                        alert('Er is een fout opgetreden bij het bijwerken van de assistent');
                     }
-                    
-                    // Reset het formulier
-                    document.getElementById('botName').value = '';
-                    document.getElementById('webhookId').value = '';
-                    addBotButton.textContent = 'Bot Toevoegen';
-                    addBotButton.onclick = handleAddBot;
-                    
-                    // Vernieuw de botlijst
-                    await updateBotList();
                 } catch (error) {
-                    console.error('Fout bij bijwerken bot:', error);
-                    alert('Er is een fout opgetreden bij het bijwerken van de bot');
+                    console.error('Fout bij bijwerken assistent:', error);
+                    alert('Er is een fout opgetreden bij het bijwerken van de assistent');
                 }
             };
             
-            // Scroll naar het formulier
-            document.querySelector('.add-bot-form').scrollIntoView({ behavior: 'smooth' });
+            // Toon het formulier
+            document.querySelector('.add-assistant-form').style.display = 'block';
+            document.getElementById('assistantName').focus();
         }
 
-        // Exporteer functies naar window object voor onclick handlers
-        window.editBot = editBot;
-        window.addNewBot = handleAddBot;
-        window.removeBot = handleRemoveBot;
-        window.handleStartChat = handleStartChat;
-
-        // Update botlijst bij laden van de pagina
-        document.addEventListener('DOMContentLoaded', updateBotList);
+        window.logout = logout;
     </script>
     <style>
         * {
@@ -253,7 +311,7 @@
             background-color: #0069d9;
         }
         
-        .bot-item {
+        .assistant-item {
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -265,26 +323,26 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .bot-item:hover {
+        .assistant-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
-        .bot-info {
+        .assistant-info {
             flex: 1;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .bot-info h3 {
+        .assistant-info h3 {
             margin: 0;
             color: #495057;
             font-size: 1.2em;
             flex: 1;
         }
         
-        .bot-actions {
+        .assistant-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -342,25 +400,25 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .delete-bot, .edit-bot {
+        .delete-assistant, .edit-assistant {
             background-color: transparent;
             width: 36px;
             padding: 0;
             justify-content: center;
         }
 
-        .delete-bot {
+        .delete-assistant {
             color: #dc3545;
         }
         
-        .delete-bot:hover {
+        .delete-assistant:hover {
             background-color: #dc3545;
             color: white;
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        .edit-bot {
+        .edit-assistant {
             background-color: transparent;
             width: 32px;
             height: 32px;
@@ -370,7 +428,7 @@
             margin-left: auto;
         }
         
-        .edit-bot:hover {
+        .edit-assistant:hover {
             background-color: #007bff;
             color: white;
             transform: translateY(-1px);
@@ -392,6 +450,29 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+        }
+        
+        .user-controls {
+            display: flex;
+            align-items: center;
+        }
+        
+        #currentUser {
+            margin-right: 15px;
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .logout-btn:hover {
+            background-color: #c82333;
         }
         
         .empty-state {
@@ -435,12 +516,20 @@
             color: #adb5bd;
         }
 
-        .add-bot-form {
+        .add-assistant-form {
             background-color: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin-top: 20px;
             border: 1px solid #dee2e6;
+            display: none;
+        }
+
+        .assistant-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
         }
 
         /* Media queries voor responsive design */
@@ -457,11 +546,11 @@
                 font-size: 1.5em;
             }
 
-            .bot-item {
+            .assistant-item {
                 padding: 12px;
             }
 
-            .bot-actions {
+            .assistant-actions {
                 flex-direction: row;
                 justify-content: stretch;
             }
@@ -488,7 +577,7 @@
                 font-size: 1.3em;
             }
 
-            .bot-actions {
+            .assistant-actions {
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -498,7 +587,7 @@
                 min-height: 40px;
             }
 
-            .delete-bot, .edit-bot {
+            .delete-assistant, .edit-assistant {
                 width: 100%;
                 flex: 1;
             }
@@ -507,39 +596,115 @@
                 gap: 5px;
             }
 
-            .add-bot-form {
+            .add-assistant-form {
                 padding: 15px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1>Chat Assistent Dashboard</h1>
-        
-        <h2>Beschikbare Assistenten</h2>
-        <div id="botList" class="list-group mb-4">
-            <!-- Bots worden hier dynamisch ingeladen -->
-            <div class="text-center" id="loadingBots">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Laden...</span>
+    <div class="container">
+        <div class="header">
+            <h1>Chat Assistent Dashboard</h1>
+            <div class="user-controls">
+                <span id="currentUser"></span>
+                <button id="logoutBtn" class="logout-btn">Uitloggen</button>
+            </div>
+        </div>
+        <div class="content">
+            <div class="assistant-list-container">
+                <div class="assistant-list-header">
+                    <h2>Assistenten</h2>
+                    <button id="addAssistantBtn" class="action-button">+ Nieuwe Assistent</button>
+                </div>
+                <div id="assistantList" class="assistant-list">
+                    <!-- Assistent items worden hier geladen -->
+                </div>
+                
+                <div class="add-assistant-form">
+                    <h3 id="assistantFormTitle">Nieuwe Assistent Toevoegen</h3>
+                    <div class="form-group">
+                        <label for="assistantName">Assistent Naam:</label>
+                        <input type="text" id="assistantName" placeholder="Voer assistent naam in">
+                    </div>
+                    <div class="form-group">
+                        <label for="webhookId">Webhook ID:</label>
+                        <input type="text" id="webhookId" placeholder="Voer webhook ID in">
+                    </div>
+                    <div class="form-actions">
+                        <button id="submitAssistantBtn" class="action-button">Toevoegen</button>
+                        <button id="cancelAssistantBtn" class="action-button" onclick="document.querySelector('.add-assistant-form').style.display='none'">Annuleren</button>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div class="add-bot-form">
-            <div class="form-group">
-                <label for="botName">Assistent Naam</label>
-                <input type="text" id="botName" placeholder="Voer een naam in voor de bot">
-            </div>
-            <div class="form-group">
-                <label for="webhookId">Webhook ID</label>
-                <input type="text" id="webhookId" placeholder="Voer de webhook ID in">
-            </div>
-            <div class="form-group">
-                <button class="action-button start-chat" onclick="addNewBot()">Assistent Toevoegen</button>
-            </div>
-        </div>
     </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Controleer of we zijn ingelogd
+            checkLoginStatus();
+            
+            // Haal bots op van de server
+            fetchBots();
+            
+            // Voeg event listener toe voor uitloggen knop
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                logout();
+            });
+            
+            // Voeg event listeners toe voor formulier
+            const botForm = document.getElementById('botForm');
+            if (botForm) {
+                botForm.addEventListener('submit', handleBotFormSubmit);
+            }
+        });
+        
+        // Controleer of de gebruiker is ingelogd
+        function checkLoginStatus() {
+            fetch('/api/auth/check')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.isAuthenticated) {
+                        window.location.href = '/login.html';
+                    } else {
+                        const userElement = document.getElementById('currentUser');
+                        if (userElement && data.gebruiker) {
+                            userElement.textContent = data.gebruiker.naam || data.gebruiker.username;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Fout bij controleren login status:', error);
+                    window.location.href = '/login.html';
+                });
+        }
+        
+        // Uitloggen functie
+        function logout() {
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Wis alle lokale opslag
+                    sessionStorage.clear();
+                    localStorage.clear();
+                    // Redirect naar login pagina
+                    window.location.href = '/login.html';
+                } else {
+                    alert('Uitloggen mislukt: ' + (data.error || 'Onbekende fout'));
+                }
+            })
+            .catch(error => {
+                console.error('Uitloggen mislukt:', error);
+                alert('Uitloggen mislukt: ' + error.message);
+            });
+        }
+    </script>
 </body>
 </html> 

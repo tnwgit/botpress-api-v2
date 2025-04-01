@@ -149,7 +149,11 @@ async function sendMessage(text) {
 function extractWebhookId(input) {
     if (!input) return null;
     // Als het een URL is, haal dan de laatste deel van de URL
-    if (input.includes('webhook.botpress.cloud')) {
+    if (input.includes('webhook.botpress.cloud/')) {
+        return input.split('webhook.botpress.cloud/')[1];
+    }
+    // Als het een https:// URL is, haal dan het laatste deel
+    if (input.startsWith('https://')) {
         return input.split('/').pop();
     }
     return input;

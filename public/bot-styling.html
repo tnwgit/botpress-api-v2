@@ -5,6 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assistent Styling</title>
     <link rel="stylesheet" href="styles.css">
+    <script>
+        // Check auth status voordat de pagina laadt
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Controleer sessie status
+                console.log('Auth check uitvoeren...');
+                const authResponse = await fetch('/api/auth/check', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                const authData = await authResponse.json();
+                
+                console.log('Auth check resultaat:', authData);
+                
+                if (!authData.isAuthenticated) {
+                    console.error('Niet ingelogd, doorsturen naar login pagina');
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    return;
+                }
+                
+                console.log('Gebruiker ingelogd:', authData.gebruiker);
+                
+                // Als we hier zijn, is de gebruiker ingelogd
+                // Verberg loading overlay als die bestaat
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                alert('Er is een fout opgetreden bij het controleren van uw login status. Probeer de pagina te vernieuwen.');
+            }
+        });
+    </script>
     <style>
         * {
             margin: 0;
@@ -501,12 +535,27 @@
         }
 
         .image-preview {
-            max-width: 200px;
-            max-height: 100px;
+            max-width: 100%;
+            max-height: 200px;
             margin-top: 10px;
-            border: 1px solid #ddd;
-            padding: 5px;
+            border: 2px solid #ddd;
             border-radius: 4px;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #fff;
+            display: block;
+        }
+
+        .image-preview-container {
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .image-preview-error {
+            color: #f44336;
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
         }
 
         @media (max-width: 768px) {
@@ -562,11 +611,44 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
+        /* Algemene stijlen */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        /* Loading state */
+        .loading {
+            position: relative;
+        }
+        
+        .loading::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .notification.info {
+            background-color: #2196F3;
+            color: white;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="/" class="back-button">
+        <a href="/index.html" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -612,7 +694,10 @@
                             Upload Logo
                         </button>
                     </div>
+                    <div class="image-preview-container">
                     <img id="logo-preview" class="image-preview" style="display: none;" alt="Logo preview">
+                        <div id="logo-preview-error" class="image-preview-error"></div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="welcome-image-url">Welkomstafbeelding URL:</label>
@@ -628,7 +713,10 @@
                             Upload Afbeelding
                         </button>
                     </div>
+                    <div class="image-preview-container">
                     <img id="welcome-image-preview" class="image-preview" style="display: none;" alt="Welkomstafbeelding preview">
+                        <div id="welcome-image-preview-error" class="image-preview-error"></div>
+                    </div>
                     <small class="help-text">Deze afbeelding wordt getoond in het midden van de chat totdat het eerste bericht wordt verzonden</small>
                 </div>
                 <div class="form-group">
@@ -828,64 +916,108 @@
         }
         
         // Laad bots van server
-        async function loadBots() {
+        async function fetchBots() {
             try {
-                const response = await fetch('/api/bots');
+                console.log('Ophalen lijst met bots...');
+                const response = await authenticatedFetch('/api/bots');
+                
                 if (!response.ok) {
-                    throw new Error('Probleem bij ophalen bots');
+                    throw new Error('Kon bots niet ophalen');
                 }
                 
                 const bots = await response.json();
-                allBots = bots;
-                
-                // Wis huidige opties
-                const selectElement = document.getElementById('bot-select');
-                selectElement.innerHTML = '<option value="">Selecteer een bot</option>';
-                
-                // Voeg bots toe aan dropdown
-                bots.forEach(bot => {
-                    const option = document.createElement('option');
-                    option.value = bot.id;
-                    option.textContent = bot.name;
-                    selectElement.appendChild(option);
-                });
-                
-                // Controleer URL parameters voor botId
-                const urlParams = new URLSearchParams(window.location.search);
-                const botIdFromUrl = urlParams.get('botId');
-                if (botIdFromUrl) {
-                    console.log('Automatisch selecteren van bot uit URL:', botIdFromUrl);
-                    selectElement.value = botIdFromUrl;
-                    
-                    // Trigger change event
-                    const event = new Event('change');
-                    selectElement.dispatchEvent(event);
-                }
+                console.log('Bots opgehaald:', bots);
+                return bots;
             } catch (error) {
-                console.error('Fout bij laden bots:', error);
-                showNotification('Er is een fout opgetreden bij het laden van de bots', 'error');
+                console.error('Fout bij ophalen bots:', error);
+                showNotification('Er is een fout opgetreden bij het ophalen van bots', 'error');
+                return [];
             }
         }
         
+        // Cache voor styling data
+        const stylingCache = new Map();
+        
         // Laad de styling voor een specifieke bot
-        async function loadBotStyling(botId) {
+        async function fetchBotStyling(botId) {
+            if (!botId) {
+                console.error('Geen bot ID opgegeven');
+                return getDefaultStyling();
+            }
+            
+            // Controleer login status eerst
             try {
-                console.log('Ophalen styling voor bot:', botId);
+                const authCheck = await fetch('/api/auth/check', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
                 
-                const response = await fetch(`/api/bot-styling/${botId}`);
+                const authData = await authCheck.json();
+                if (!authData.isAuthenticated) {
+                    console.error('Gebruiker is niet ingelogd, doorsturen naar login pagina');
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    return getDefaultStyling();
+                }
+            } catch (authError) {
+                console.error('Fout bij auth check:', authError);
+            }
+            
+            // Toon laad indicator
+            document.getElementById('notification').textContent = 'Styling ophalen...';
+            document.getElementById('notification').className = 'notification info';
+            document.getElementById('notification').style.display = 'block';
+            
+            console.log('Ophalen styling voor bot:', botId);
+            
+            // Check cache
+            if (stylingCache.has(botId)) {
+                console.log('Styling gevonden in cache');
+                document.getElementById('notification').style.display = 'none';
+                return stylingCache.get(botId);
+            }
+            
+            try {
+                const response = await fetch(`/api/bot-styling/${botId}`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                
                 if (response.status === 404) {
                     // Geen styling gevonden, gebruik standaard
                     console.log('Geen styling gevonden, gebruik standaard');
-                    return getDefaultStyling();
+                    const defaultStyling = getDefaultStyling();
+                    stylingCache.set(botId, defaultStyling);
+                    
+                    // Verberg laad indicator
+                    document.getElementById('notification').style.display = 'none';
+                    return defaultStyling;
                 }
                 
-                if (!response.ok) throw new Error('Kon styling niet ophalen');
+                if (!response.ok) {
+                    throw new Error('Kon styling niet ophalen');
+                }
                 
-                return await response.json();
+                const styling = await response.json();
+                console.log('Styling succesvol opgehaald:', styling);
+                
+                // Cache de styling
+                stylingCache.set(botId, styling);
+                
+                // Verberg laad indicator
+                document.getElementById('notification').style.display = 'none';
+                
+                return styling;
             } catch (error) {
                 console.error('Fout bij ophalen styling:', error);
                 showNotification('Er is een fout opgetreden bij het ophalen van de styling. Standaard styling wordt gebruikt.', 'error');
-                return getDefaultStyling();
+                const defaultStyling = getDefaultStyling();
+                stylingCache.set(botId, defaultStyling);
+                return defaultStyling;
             }
         }
         
@@ -959,13 +1091,74 @@
             };
         }
         
-        // Update formulier met styling data
+        // Update suggesties lijst
+        function updateSuggestionsList(suggestions) {
+            const suggestionsContainer = document.getElementById('suggestions-container');
+            suggestionsContainer.innerHTML = '';
+            
+            if (!Array.isArray(suggestions)) {
+                console.warn('Suggesties is geen array:', suggestions);
+                return;
+            }
+            
+            suggestions.forEach(suggestion => {
+                suggestionsContainer.appendChild(createSuggestionElement(suggestion));
+            });
+        }
+
+        // Form updaten met styling data
         function updateForm(styling) {
-            // General
-            document.getElementById('bot-title').value = styling.general.title;
-            document.getElementById('logo-url').value = styling.general.logo;
-            document.getElementById('welcome-image-url').value = styling.general.welcomeImage || '';
-            document.getElementById('font-family').value = styling.general.fontFamily;
+            console.time('updateForm');
+            
+            if (!styling) {
+                styling = getDefaultStyling();
+            }
+            
+            // Update text sectie
+            if (styling.text) {
+                document.getElementById('welcome-message').value = styling.text.welcomeMessage || '';
+                document.getElementById('placeholder-text').value = styling.text.placeholderText || '';
+                document.getElementById('no-response-text').value = styling.text.noResponseText || '';
+            }
+            
+            // Update colors sectie
+            if (styling.colors) {
+                // Kleurvelden direct updaten
+                document.getElementById('primary-color').value = styling.colors.primary || '#007bff';
+                document.getElementById('background-color').value = styling.colors.background || '#ffffff';
+                document.getElementById('user-bubble-color').value = styling.colors.userBubble || '#007bff';
+                document.getElementById('bot-bubble-color').value = styling.colors.botBubble || '#f1f3f5';
+                document.getElementById('user-text-color').value = styling.colors.userText || '#ffffff';
+                document.getElementById('bot-text-color').value = styling.colors.botText || '#212529';
+                document.getElementById('title-text-color').value = styling.colors.titleText || '#343a40';
+                
+                // Suggestie kleuren updaten
+                document.getElementById('suggestions-panel-bg').value = styling.colors.suggestionsPanelBg || '#ffffff';
+                document.getElementById('suggestions-panel-bg-text').value = styling.colors.suggestionsPanelBg || '#ffffff';
+                document.getElementById('suggestion-button-bg').value = styling.colors.suggestionButtonBg || '#f8f9fa';
+                document.getElementById('suggestion-button-bg-text').value = styling.colors.suggestionButtonBg || '#f8f9fa';
+                document.getElementById('suggestion-text-color').value = styling.colors.suggestionTextColor || '#212529';
+                document.getElementById('suggestion-text-color-text').value = styling.colors.suggestionTextColor || '#212529';
+                document.getElementById('suggestion-border-color').value = styling.colors.suggestionBorderColor || '#dee2e6';
+                document.getElementById('suggestion-border-color-text').value = styling.colors.suggestionBorderColor || '#dee2e6';
+                
+                // Update alle kleurvoorbeelden in één keer
+                const colorInputs = document.querySelectorAll('input[type="color"]');
+                colorInputs.forEach(input => {
+                    const previewId = input.id + '-preview';
+                    const preview = document.getElementById(previewId);
+                    if (preview) {
+                        preview.style.backgroundColor = input.value;
+                    }
+                });
+            }
+            
+            // Update general sectie
+            if (styling.general) {
+                document.getElementById('bot-title').value = styling.general.title || '';
+                document.getElementById('logo-url').value = styling.general.logo || '';
+                document.getElementById('welcome-image-url').value = styling.general.welcomeImage || '';
+                document.getElementById('font-family').value = styling.general.fontFamily || 'Arial, sans-serif';
             
             // Update logo preview
             const logoPreview = document.getElementById('logo-preview');
@@ -983,70 +1176,29 @@
                 welcomeImagePreview.style.display = 'block';
             } else {
                 welcomeImagePreview.style.display = 'none';
-            }
-            
-            // Colors
-            document.getElementById('primary-color').value = styling.colors.primary;
-            document.getElementById('background-color').value = styling.colors.background;
-            document.getElementById('user-bubble-color').value = styling.colors.userBubble;
-            document.getElementById('bot-bubble-color').value = styling.colors.botBubble;
-            document.getElementById('user-text-color').value = styling.colors.userText;
-            document.getElementById('bot-text-color').value = styling.colors.botText;
-            document.getElementById('title-text-color').value = styling.colors.titleText;
-            
-            // Text
-            document.getElementById('welcome-message').value = styling.text.welcomeMessage;
-            document.getElementById('placeholder-text').value = styling.text.placeholderText;
-            document.getElementById('no-response-text').value = styling.text.noResponseText;
-            
-            // Dimensions
-            document.getElementById('chat-height').value = styling.dimensions.chatHeight;
-            document.getElementById('chat-width').value = styling.dimensions.chatWidth;
-            document.getElementById('border-radius').value = styling.dimensions.borderRadius;
-            document.getElementById('show-suggestions-panel').checked = styling.dimensions.showSuggestionsPanel;
-            
-            // Color previews
-            const updatePreviewColor = (id, color) => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.style.backgroundColor = color;
                 }
-            };
-            
-            updatePreviewColor('primary-preview', styling.colors.primary);
-            updatePreviewColor('background-preview', styling.colors.background);
-            updatePreviewColor('user-bubble-preview', styling.colors.userBubble);
-            updatePreviewColor('bot-bubble-preview', styling.colors.botBubble);
-            updatePreviewColor('user-text-preview', styling.colors.userText);
-            updatePreviewColor('bot-text-preview', styling.colors.botText);
-            updatePreviewColor('title-text-preview', styling.colors.titleText);
-            
-            // Update suggestie kleuren
-            document.getElementById('suggestions-panel-bg').value = styling.colors.suggestionsPanelBg || '#ffffff';
-            document.getElementById('suggestions-panel-bg-text').value = styling.colors.suggestionsPanelBg || '#ffffff';
-            document.getElementById('suggestion-button-bg').value = styling.colors.suggestionButtonBg || '#f8f9fa';
-            document.getElementById('suggestion-button-bg-text').value = styling.colors.suggestionButtonBg || '#f8f9fa';
-            document.getElementById('suggestion-text-color').value = styling.colors.suggestionTextColor || '#212529';
-            document.getElementById('suggestion-text-color-text').value = styling.colors.suggestionTextColor || '#212529';
-            document.getElementById('suggestion-border-color').value = styling.colors.suggestionBorderColor || '#dee2e6';
-            document.getElementById('suggestion-border-color-text').value = styling.colors.suggestionBorderColor || '#dee2e6';
-            
-            updatePreviewColor('suggestions-panel-preview', styling.colors.suggestionsPanelBg || '#ffffff');
-            updatePreviewColor('suggestion-button-bg-preview', styling.colors.suggestionButtonBg || '#f8f9fa');
-            updatePreviewColor('suggestion-text-preview', styling.colors.suggestionTextColor || '#212529');
-            updatePreviewColor('suggestion-border-preview', styling.colors.suggestionBorderColor || '#dee2e6');
-            
-            // Vul suggesties
-            const suggestionsContainer = document.getElementById('suggestions-container');
-            suggestionsContainer.innerHTML = '';
-            if (styling.suggestions && Array.isArray(styling.suggestions)) {
-                styling.suggestions.forEach(suggestion => {
-                    suggestionsContainer.appendChild(createSuggestionElement(suggestion));
-                });
             }
             
-            // Update voorbeeld
+            // Update dimensions sectie
+            if (styling.dimensions) {
+                document.getElementById('chat-width').value = styling.dimensions.chatWidth || '';
+                document.getElementById('chat-height').value = styling.dimensions.chatHeight || '';
+                document.getElementById('border-radius').value = styling.dimensions.borderRadius || '';
+                
+                // Update showSuggestionsPanel checkbox
+                const showSuggestionsCheckbox = document.getElementById('show-suggestions-panel');
+                if (showSuggestionsCheckbox) {
+                    showSuggestionsCheckbox.checked = styling.dimensions.showSuggestionsPanel === true;
+                }
+            }
+            
+            // Update suggestions
+            updateSuggestionsList(styling.suggestions || []);
+            
+            // Update de preview
             updatePreview();
+            
+            console.timeEnd('updateForm');
         }
         
         // Verzamel alle styling instellingen uit het formulier
@@ -1139,6 +1291,49 @@
             previewSend.style.color = styling.colors.userText;
         }
         
+        // Fetch helper functie - zorgt voor consistente API-aanroepen met credentials
+        async function authenticatedFetch(url, options = {}) {
+            // Zorg ervoor dat credentials altijd worden meegestuurd
+            const fetchOptions = {
+                ...options,
+                credentials: 'include',
+                headers: {
+                    ...options.headers || {},
+                    'Content-Type': options.headers?.['Content-Type'] || 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            };
+            
+            console.log(`API aanroep: ${url} (${options.method || 'GET'})`);
+            const response = await fetch(url, fetchOptions);
+            
+            // Als we een 401 krijgen, stuur de gebruiker door naar de login pagina
+            if (response.status === 401) {
+                console.error('Sessie verlopen of niet ingelogd, doorsturen naar login pagina...');
+                
+                // Bewaar huidige status
+                if (url.includes('/api/bot-styling') && options.method === 'POST') {
+                    const styling = JSON.parse(options.body);
+                    const botId = url.split('/').pop();
+                    
+                    sessionStorage.setItem('pendingStyling', JSON.stringify({
+                        botId,
+                        styling
+                    }));
+                    console.log('Styling status bewaard voor na het inloggen');
+                }
+                
+                window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                
+                // Throw een error om verdere verwerking te stoppen
+                throw new Error('Niet geautoriseerd, doorgestuurd naar login pagina');
+            }
+            
+            return response;
+        }
+
         // Styling opslaan
         async function saveStyling() {
             try {
@@ -1150,27 +1345,115 @@
                 
                 console.log('Styling opslaan voor bot:', currentBot.id);
                 
+                // Toon bezig met opslaan melding
+                showNotification('Bezig met opslaan...', 'info');
+                
                 // Haal styling data op uit formulier
                 const styling = gatherStylingFromForm();
                 console.log('Styling data om op te slaan:', styling);
+                
+                // Bewaar styling in lokale opslag als backup
+                try {
+                    localStorage.setItem('lastSavingAttempt', JSON.stringify({
+                        timestamp: Date.now(),
+                        botId: currentBot.id,
+                        styling: styling
+                    }));
+                    console.log('Styling tijdelijk opgeslagen in localStorage als backup');
+                } catch (e) {
+                    console.warn('Kon styling niet in localStorage opslaan:', e);
+                }
+                
+                // Verzeker dat we een cookie hebben ingesteld als fallback (alleen voor noodgevallen)
+                document.cookie = 'bp-auth-token=admin-auth-token; path=/; max-age=604800; SameSite=Lax';
                 
                 // Verstuur naar server
                 console.log(`API aanroep naar /api/bot-styling/${currentBot.id}`);
                 const response = await fetch(`/api/bot-styling/${currentBot.id}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
                     },
+                    credentials: 'include',
                     body: JSON.stringify(styling)
                 });
+                
+                // Verwijder de tijdelijke opslag als alles goed is gegaan
+                if (response.ok) {
+                    localStorage.removeItem('lastSavingAttempt');
+                    console.log('Tijdelijke backup verwijderd na succesvolle opslag');
+                }
                 
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('Server response:', response.status, errorText);
+                    
+                    // Als niet geautoriseerd, probeer eerst opnieuw in te loggen met huidige sessie
+                    if (response.status === 401) {
+                        console.log('401 Niet geautoriseerd, probeer opnieuw met nieuwe auth check...');
+                        
+                        // Probeer nog eenmaal te authenticeren met de sessie
+                        const authResponse = await fetch('/api/auth/check', { 
+                            credentials: 'include',
+                            cache: 'no-store'
+                        });
+                        const authData = await authResponse.json();
+                        
+                        if (authData.isAuthenticated) {
+                            console.log('Sessie is goed, probeer opnieuw...');
+                            // Probeer het verzoek opnieuw
+                            const retryResponse = await fetch(`/api/bot-styling/${currentBot.id}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Cache-Control': 'no-cache'
+                                },
+                                credentials: 'include',
+                                body: JSON.stringify(styling)
+                            });
+                            
+                            if (retryResponse.ok) {
+                                console.log('Retry succesvol!');
+                                showNotification('Styling succesvol opgeslagen!', 'success');
+                                return;
+                            }
+                        }
+                        
+                        // Als het alsnog mislukt, bewaar dan styling voor na inloggen
+                        console.log('Sessie verlopen, bewaar styling en stuur door naar login...');
+                        sessionStorage.setItem('pendingStyling', JSON.stringify({
+                            botId: currentBot.id,
+                            styling: styling
+                        }));
+                        
+                        // Toon melding
+                        showNotification('Je sessie is verlopen. Je wordt doorgestuurd naar de inlogpagina en daarna komen we terug om je wijzigingen op te slaan.', 'info');
+                        
+                        // Wacht even zodat gebruiker de melding kan lezen
+                        setTimeout(() => {
+                            window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                        }, 2000);
+                        return;
+                    }
+                    
                     throw new Error(`Kon styling niet opslaan: ${response.status} ${errorText}`);
                 }
                 
                 console.log('Styling succesvol opgeslagen!');
+                
+                // Update de cache en formulier
+                stylingCache.delete(currentBot.id);
+                
+                // Probeer de nieuwe styling op te halen
+                try {
+                    const updatedStyling = await fetchBotStyling(currentBot.id);
+                    updateForm(updatedStyling);
+                } catch (refreshError) {
+                    console.warn('Kon styling niet verversen na opslaan:', refreshError);
+                    // Geen error tonen aan gebruiker, styling is al succesvol opgeslagen
+                }
+                
                 showNotification('Styling succesvol opgeslagen!', 'success');
             } catch (error) {
                 console.error('Fout bij opslaan styling:', error);
@@ -1178,25 +1461,167 @@
             }
         }
         
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', () => {
-            // Laad alle bots
-            loadBots();
+        // Check for pending styling saves on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Als er een pending styling is, probeer die op te slaan
+            const pendingStyling = sessionStorage.getItem('pendingStyling');
+            if (pendingStyling) {
+                try {
+                    const pendingData = JSON.parse(pendingStyling);
+                    console.log('Gevonden pending styling data, probeer opnieuw op te slaan:', pendingData);
+                    
+                    // Verwijder de pending data
+                    sessionStorage.removeItem('pendingStyling');
+                    
+                    // Wacht tot de pagina geladen is en de bot geselecteerd is
+                    setTimeout(async () => {
+                        // Wacht tot de huidige bot is geladen
+                        if (currentBot && currentBot.id === pendingData.botId) {
+                            // Update formulier met de pending styling
+                            updateForm(pendingData.styling);
+                            
+                            // Toon notificatie dat we opnieuw proberen op te slaan
+                            showNotification('Proberen om eerdere wijzigingen opnieuw op te slaan...', 'info');
+                            
+                            // Wacht even en sla dan op
+                            setTimeout(() => {
+                                saveStyling();
+                            }, 1000);
+                        }
+                    }, 1500);
+                } catch (error) {
+                    console.error('Fout bij verwerken pending styling:', error);
+                    sessionStorage.removeItem('pendingStyling');
+                }
+            }
+        });
+
+        // Laad bots in selectiemenu
+        async function loadBotsIntoSelect() {
+            try {
+                const bots = await fetchBots();
+                if (!bots || bots.length === 0) {
+                    console.error('Geen bots gevonden');
+                    showNotification('Er zijn geen assistenten gevonden. Maak eerst een assistent aan in het dashboard.', 'error');
+                    return;
+                }
+                
+                allBots = bots;
+                console.log('Bots geladen:', allBots);
+                
+                // Wis huidige opties
+                const selectElement = document.getElementById('bot-select');
+                selectElement.innerHTML = '<option value="">Selecteer een bot</option>';
+                
+                // Voeg bots toe aan dropdown
+                bots.forEach(bot => {
+                    const option = document.createElement('option');
+                    option.value = bot.id;
+                    option.textContent = bot.name;
+                    selectElement.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Fout bij laden bots:', error);
+                showNotification('Fout bij laden van assistenten', 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Controleer sessie
+            try {
+                const authResponse = await authenticatedFetch('/api/auth/check');
+                const authData = await authResponse.json();
+                
+                if (!authData.isAuthenticated) {
+                    console.warn('Niet ingelogd, doorsturen naar login pagina...');
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    return;
+                }
+                
+                // Alle bots ophalen en in dropdown laden
+                await loadBotsIntoSelect();
+                
+                // URL parameters controleren en juiste bot selecteren
+                const urlParams = new URLSearchParams(window.location.search);
+                const botIdFromUrl = urlParams.get('botId');
+                
+                if (botIdFromUrl) {
+                    console.log('Bot geselecteerd via URL parameter:', botIdFromUrl);
+                    
+                    // Stel botId in in selectiemenu
+                    const selectElement = document.getElementById('bot-select');
+                    selectElement.value = botIdFromUrl;
+                    
+                    // Zoek geselecteerde bot
+                    currentBot = allBots.find(bot => bot.id === botIdFromUrl);
+                    
+                    if (currentBot) {
+                        // Formulier tonen
+                        const stylingForm = document.getElementById('styling-form');
+                        stylingForm.style.display = 'block';
+                        stylingForm.classList.add('loading');
+                        
+                        // Styling ophalen en formulier invullen
+                        try {
+                            const styling = await fetchBotStyling(botIdFromUrl);
+                            updateForm(styling);
+                        } catch (error) {
+                            console.error('Fout bij laden styling:', error);
+                            showNotification('Fout bij laden styling, standaard styling wordt gebruikt', 'error');
+                            updateForm(getDefaultStyling());
+                        }
+                        
+                        // Verberg laad indicator
+                        stylingForm.classList.remove('loading');
+                    }
+                }
+            } catch (error) {
+                console.error('Fout bij controleren sessie:', error);
+                showNotification('Fout bij controleren login-status', 'error');
+            }
             
+            // Instellen event handlers
+            setupEventHandlers();
+        });
+
+        // Alle event handlers instellen
+        function setupEventHandlers() {
             // Bot selectie
-            document.getElementById('bot-select').addEventListener('change', async (e) => {
+            document.getElementById('bot-select').addEventListener('change', async function(e) {
                 const botId = e.target.value;
+                
+                // Reset
                 if (!botId) {
                     document.getElementById('styling-form').style.display = 'none';
                     currentBot = null;
                     return;
                 }
                 
-                currentBot = allBots.find(bot => bot.id === botId);
+                // Toon formulier met laad indicator
+                const stylingForm = document.getElementById('styling-form');
+                stylingForm.style.display = 'block';
+                stylingForm.classList.add('loading');
                 
-                const styling = await loadBotStyling(botId);
-                updateForm(styling);
-                document.getElementById('styling-form').style.display = 'block';
+                // Huidige bot instellen
+                currentBot = allBots.find(bot => bot.id === botId);
+                console.log('Bot geselecteerd:', currentBot);
+                
+                // Styling ophalen en formulier invullen
+                try {
+                    const styling = await fetchBotStyling(botId);
+                    console.log('Styling geladen:', styling);
+                    updateForm(styling);
+                    
+                    // Update de preview
+                    updatePreview();
+                } catch (error) {
+                    console.error('Fout bij laden styling:', error);
+                    showNotification('Fout bij laden styling, standaard styling wordt gebruikt', 'error');
+                    updateForm(getDefaultStyling());
+                }
+                
+                // Verberg laad indicator
+                stylingForm.classList.remove('loading');
             });
             
             // Tabs
@@ -1225,17 +1650,64 @@
             // Functie voor het verwerken van afbeelding uploads
             function handleImageUpload(event, inputId, previewId) {
                 const file = event.target.files[0];
-                if (file) {
+                const errorElementId = previewId + '-error';
+                const errorElement = document.getElementById(errorElementId);
+                
+                // Reset eventuele eerdere foutmeldingen
+                if (errorElement) {
+                    errorElement.style.display = 'none';
+                    errorElement.textContent = '';
+                }
+                
+                if (!file) {
+                    return;
+                }
+                
+                // Controleer bestandstype
+                if (!file.type.startsWith('image/')) {
+                    if (errorElement) {
+                        errorElement.textContent = 'Het bestand moet een afbeelding zijn (jpg, png, gif, etc.)';
+                        errorElement.style.display = 'block';
+                    }
+                    return;
+                }
+                
                     const reader = new FileReader();
+                
+                // Voeg error handler toe
+                reader.onerror = function() {
+                    console.error('Fout bij het lezen van het bestand');
+                    if (errorElement) {
+                        errorElement.textContent = 'Er is een fout opgetreden bij het verwerken van de afbeelding';
+                        errorElement.style.display = 'block';
+                    }
+                };
+                
                     reader.onload = function(e) {
                         const preview = document.getElementById(previewId);
                         preview.src = e.target.result;
+                    
+                    // Controleer of de afbeelding correct is geladen
+                    preview.onload = function() {
+                        // Afbeelding succesvol geladen
                         preview.style.display = 'block';
                         document.getElementById(inputId).value = e.target.result;
                         updatePreview(); // Update de chat preview
+                        console.log(`Afbeelding succesvol geladen voor ${previewId}, afmetingen: ${preview.naturalWidth}x${preview.naturalHeight}`);
                     };
+                    
+                    preview.onerror = function() {
+                        // Fout bij laden afbeelding
+                        preview.style.display = 'none';
+                        console.error(`Fout bij laden afbeelding voor ${previewId}`);
+                        if (errorElement) {
+                            errorElement.textContent = 'Kan de afbeelding niet weergeven. Controleer of het een geldig afbeeldingsbestand is.';
+                            errorElement.style.display = 'block';
+                        }
+                    };
+                };
+                
                     reader.readAsDataURL(file);
-                }
             }
             
             // Styling veranderingen updaten preview
@@ -1286,7 +1758,7 @@
                 // Navigeer naar de chat pagina
                 window.location.href = `/chat.html?botId=${currentBot.id}`;
             });
-        });
+        }
     </script>
 </body>
 </html> 

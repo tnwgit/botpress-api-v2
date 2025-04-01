@@ -27,7 +27,7 @@
     "chatHeight": "800",
     "chatWidth": "500",
     "borderRadius": "8",
-    "showSuggestionsPanel": true
+    "showSuggestionsPanel": false
   },
   "suggestions": [
     "Wat kost parkeren en hoe werkt dit?",

@@ -174,26 +174,14 @@
         }
 
         // Functie om chat te starten
-        function handleStartChat(assistantId, assistantName, webhookId) {
-            console.log('Start chat met:', { assistantId, assistantName, webhookId });
-            
-            // Wis alle bestaande chat data
-            localStorage.removeItem('userId');
-            localStorage.removeItem('userKey');
-            localStorage.removeItem('conversationId');
-            localStorage.removeItem('lastBotMessageId');
-            localStorage.removeItem('botName');
-            localStorage.removeItem('webhookId');
-            
-            // Sla nieuwe assistent gegevens op
-            localStorage.setItem('botId', assistantId);
-            localStorage.setItem('botName', assistantName);
+        function handleStartChat(botId, botName, webhookId) {
+            // Sla relevante bot gegevens op in localStorage voor de chat pagina
+            localStorage.setItem('botId', botId);
+            localStorage.setItem('botName', botName);
             localStorage.setItem('webhookId', webhookId);
             
-            console.log('Assistent gegevens opgeslagen in localStorage');
-            
-            // Ga naar chat pagina
-            window.location.href = `/chat.html?botId=${assistantId}`;
+            // Navigeer naar de chat pagina
+            window.location.href = `/chat-integrated.html?botId=${botId}`;
         }
 
         // Functie om styling te configureren

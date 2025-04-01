@@ -6,7 +6,7 @@
     "fontFamily": "Arial, sans-serif"
   },
   "colors": {
-    "primary": "#e91c1c",
+    "primary": "#c8c0c0",
     "background": "#ffffff",
     "userBubble": "#c8c0c0",
     "botBubble": "#f0f0f0",
@@ -36,6 +36,7 @@
     "Is er toegang voor mensen met lichamelijke beperking?",
     "Hebben jullie zalen met daglicht te huur?",
     "Hebben jullie een leuke aanbieding voor Pasen?",
-    "test"
+    "Moet ik reserveren voor het restaurant?",
+    "Wat kost een kamer per nacht?"
   ]
 }

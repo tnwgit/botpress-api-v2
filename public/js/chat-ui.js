@@ -157,12 +157,12 @@ function addMessage(message, isUser = false, chatMessages) {
     // Minder verbose logging
     if (isUser) {
         console.log(`Gebruikersbericht: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"`);
-    }
-    
-    // Verberg de welkomstafbeelding bij het eerste bericht
-    const welcomeContainer = document.getElementById('welcomeImageContainer');
-    if (welcomeContainer) {
-        welcomeContainer.classList.add('hidden');
+        
+        // Verberg de welkomstafbeelding alleen bij gebruikersberichten
+        const welcomeContainer = document.getElementById('welcomeImageContainer');
+        if (welcomeContainer) {
+            welcomeContainer.classList.add('hidden');
+        }
     }
     
     // Gebruik de DocumentFragment API voor betere rendering prestaties

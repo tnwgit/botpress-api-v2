@@ -531,12 +531,25 @@
             .chat-main {
                 display: flex;
                 flex-direction: column;
-                height: 60vh;
+                height: 70vh;
+                width: 100% !important;
+                margin-right: 0 !important;
             }
             
             .chat-messages {
                 height: auto;
                 flex: 1;
+            }
+            
+            /* Verberg suggesties paneel op mobiel */
+            .suggestions-panel {
+                display: none !important;
+            }
+            
+            /* Zorg dat chat de volledige breedte gebruikt */
+            .chat-with-suggestions {
+                flex-direction: column !important;
+                width: 100%;
             }
             
             .chat-header {
@@ -565,10 +578,6 @@
                 height: 40px;
             }
 
-            .suggestions-panel {
-                max-height: 30vh;
-            }
-            
             .welcome-image-container {
                 height: 150px;
                 margin: 15px 0;
@@ -609,13 +618,15 @@
                 touch-action: manipulation;
             }
             
-            .chat-main {
-                height: 65vh;
-            }
-            
             .bot-name {
                 font-size: 1em;
                 max-width: 200px;
+            }
+            
+            /* Verberg debug container volledig op mobiel */
+            .debug-container, 
+            body > .show-debug {
+                display: none !important;
             }
         }
 
@@ -754,15 +765,22 @@
 
         /* Debug panel voor optionele weergave */
         .debug-container {
-            margin-top: 20px;
-            background: #f8f9fa;
-            padding: 15px;
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ddd;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 1000px;
-            margin-left: auto;
-            margin-right: auto;
-            display: none; /* Standaard verborgen */
+            padding: 10px;
+            max-height: 30vh;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            display: none;
+            transition: all 0.3s ease;
         }
 
         .debug-container.visible {
@@ -864,10 +882,10 @@
     </div>
     
     <!-- Debug container (optioneel) -->
-    <div class="debug-container visible" id="debug-container">
+    <div class="debug-container" id="debug-container">
         <h2>Debug Informatie</h2>
-        <div class="debug-log" id="console-output"></div>
-        <button class="show-debug" id="toggle-debug">Verberg Debug Info</button>
+        <div id="console-output" class="console-output"></div>
+        <button class="show-debug" id="toggle-debug">Toon Debug Info</button>
     </div>
     
     <!-- Laad onze modules met type="module" -->
@@ -903,15 +921,17 @@
         let isProcessing = false;
         
         // Debug functionaliteit
-        toggleDebugBtn.addEventListener('click', () => {
-            if (debugContainer.classList.contains('visible')) {
-                debugContainer.classList.remove('visible');
-                toggleDebugBtn.textContent = 'Toon Debug Info';
-            } else {
-                debugContainer.classList.add('visible');
-                toggleDebugBtn.textContent = 'Verberg Debug Info';
-            }
-        });
+        if (toggleDebugBtn) {
+            toggleDebugBtn.addEventListener('click', () => {
+                if (debugContainer.classList.contains('visible')) {
+                    debugContainer.classList.remove('visible');
+                    toggleDebugBtn.textContent = 'Toon Debug Info';
+                } else {
+                    debugContainer.classList.add('visible');
+                    toggleDebugBtn.textContent = 'Verberg Debug Info';
+                }
+            });
+        }
         
         // Auto-resize textarea
         messageInput.addEventListener('input', function() {
@@ -938,20 +958,23 @@
                 logToConsole('localStorage botName: ' + localStorage.getItem('botName'), 'info', consoleOutput);
                 logToConsole('localStorage webhookId: ' + localStorage.getItem('currentWebhookId'), 'info', consoleOutput);
                 
-                // Voeg knop toe bovenaan om debug info te tonen/verbergen 
-                const toggleDebugButton = document.createElement('button');
-                toggleDebugButton.textContent = 'Toon Debug Info';
-                toggleDebugButton.style.position = 'fixed';
-                toggleDebugButton.style.top = '20px';
-                toggleDebugButton.style.right = '20px';
-                toggleDebugButton.style.zIndex = '1000';
-                toggleDebugButton.className = 'show-debug';
-                toggleDebugButton.addEventListener('click', () => {
-                    debugContainer.classList.toggle('visible');
-                    toggleDebugButton.textContent = debugContainer.classList.contains('visible') ? 
-                        'Verberg Debug Info' : 'Toon Debug Info';
-                });
-                document.body.appendChild(toggleDebugButton);
+                // Alleen op desktop een debug-knop toevoegen
+                const isMobile = window.innerWidth <= 768;
+                if (!isMobile) {
+                    const toggleDebugButton = document.createElement('button');
+                    toggleDebugButton.textContent = 'Toon Debug Info';
+                    toggleDebugButton.style.position = 'fixed';
+                    toggleDebugButton.style.top = '20px';
+                    toggleDebugButton.style.right = '20px';
+                    toggleDebugButton.style.zIndex = '1000';
+                    toggleDebugButton.className = 'show-debug';
+                    toggleDebugButton.addEventListener('click', () => {
+                        debugContainer.classList.toggle('visible');
+                        toggleDebugButton.textContent = debugContainer.classList.contains('visible') ? 
+                            'Verberg Debug Info' : 'Toon Debug Info';
+                    });
+                    document.body.appendChild(toggleDebugButton);
+                }
                 
                 // Haal de bot ID uit de URL parameters
                 const urlParams = new URLSearchParams(window.location.search);
@@ -1069,14 +1092,17 @@
                 conversationId = conversation.id;
                 logToConsole(`Conversatie aangemaakt met ID: ${conversationId}`, 'success', consoleOutput);
                 
-                // Voeg welkomstbericht toe (lokaal, niet via API)
-                addMessage('Hallo! Hoe kan ik je helpen?', false, chatMessages);
-                
                 // Start polling voor berichten met de juiste parameters
                 startPollingMessages(client, userId, userKey, conversationId, lastProcessedMessageIds, chatMessages, consoleOutput);
                 
                 // Focus op invoerveld
                 messageInput.focus();
+                
+                // Zorg ervoor dat de welkomstafbeelding zichtbaar is
+                const welcomeContainer = document.getElementById('welcomeImageContainer');
+                if (welcomeContainer) {
+                    welcomeContainer.classList.remove('hidden');
+                }
                 
                 return true;
             } catch (error) {
@@ -1127,6 +1153,9 @@
                 
                 // Verberg de welkomstafbeelding bij het eerste bericht
                 welcomeImageContainer.classList.add('hidden');
+                
+                // Reset isProcessing zodat volgende berichten kunnen worden verzonden
+                isProcessing = false;
             } catch (error) {
                 logToConsole(`Fout bij versturen bericht: ${error.message}`, 'error', consoleOutput);
                 showTyping(false, typingIndicator);

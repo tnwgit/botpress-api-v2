@@ -114,7 +114,7 @@
                                 </svg>
                                 Chat
                             </button>
-                            <a href="/bot-styling.html?botId=${assistant.id}" class="styling-link" onclick="handleAssistantStyling('${assistant.id}', '${assistant.name}')" title="Pas de styling aan">
+                            <a href="#" class="styling-link" onclick="handleAssistantStyling('${assistant.id}', '${assistant.name}'); return false;" title="Pas de styling aan">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="12" cy="12" r="3"></circle>
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -198,9 +198,27 @@
         }
 
         // Functie om styling te configureren
-        function handleAssistantStyling(assistantId, assistantName) {
-            console.log(`Styling configureren voor ${assistantName} (ID: ${assistantId})`);
-            // De standaard href handelt de navigatie af
+        function handleAssistantStyling(botId, botName) {
+            // Sla relevante bot gegevens op in localStorage
+            localStorage.setItem('botId', botId);
+            localStorage.setItem('botName', botName);
+            
+            // Haal de auth token op
+            const authToken = localStorage.getItem('auth-token');
+            
+            // Zet extra cookies als backup
+            document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=86400; SameSite=Lax`;
+            
+            // Navigeer naar de styling pagina met token in URL parameter
+            let url = `/bot-styling.html?botId=${botId}`;
+            
+            // Voeg auth_token toe als die bestaat
+            if (authToken) {
+                url += `&auth_token=${encodeURIComponent(authToken)}`;
+            }
+            
+            console.log('Navigeren naar styling pagina:', url);
+            window.location.href = url;
         }
 
         // Functie om een assistent te bewerken

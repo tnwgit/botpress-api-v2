@@ -99,19 +99,31 @@
             <form id="loginForm" method="post" action="/api/auth/login">
                 <div class="form-group">
                     <label for="username">Gebruikersnaam</label>
-                    <input type="text" id="username" name="username" required autocomplete="username">
+                    <input type="text" id="username" name="username" required autocomplete="username" value="admin">
                 </div>
                 <div class="form-group">
                     <label for="password">Wachtwoord</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                    <input type="password" id="password" name="password" required autocomplete="current-password" value="admin">
                 </div>
                 <div id="errorMessage" class="error-message">
                     Ongeldige gebruikersnaam of wachtwoord
                 </div>
                 <div class="form-group">
-                    <button type="submit">Inloggen</button>
+                    <button type="submit">Inloggen met formulier</button>
                 </div>
             </form>
+            
+            <hr style="margin: 20px 0;">
+            
+            <div class="form-group">
+                <button id="testBtn" style="background-color: #28a745;">Test Direct API Call</button>
+            </div>
+            <div class="form-group">
+                <button id="testBtnLocal" style="background-color: #17a2b8;">Test met Absolute URL</button>
+            </div>
+            <div class="form-group">
+                <button id="checkAuth" style="background-color: #fd7e14;">Test Auth Status</button>
+            </div>
         </div>
     </div>
 
@@ -240,6 +252,97 @@
                     logDebug('Login error: ' + error.message);
                     errorMessage.textContent = error.message;
                     errorMessage.style.display = 'block';
+                });
+            });
+
+            // Voeg event listeners toe voor de test-knoppen
+            const testBtn = document.getElementById('testBtn');
+            testBtn.addEventListener('click', function() {
+                logDebug('Test directe API aanroep...');
+                
+                fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        username: 'admin',
+                        wachtwoord: 'admin'
+                    })
+                })
+                .then(response => {
+                    logDebug(`Status: ${response.status} ${response.statusText}`);
+                    return response.json().catch(e => {
+                        logDebug(`JSON parse error: ${e.message}`);
+                        return { error: 'Invalid JSON response' };
+                    });
+                })
+                .then(data => {
+                    logDebug(`Response data: ${JSON.stringify(data)}`);
+                })
+                .catch(error => {
+                    logDebug(`Fetch error: ${error.message}`);
+                });
+            });
+
+            const testBtnLocal = document.getElementById('testBtnLocal');
+            testBtnLocal.addEventListener('click', function() {
+                const baseUrl = window.location.origin;
+                logDebug(`Test met absolute URL: ${baseUrl}/api/auth/login`);
+                
+                fetch(`${baseUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        username: 'admin',
+                        wachtwoord: 'admin'
+                    })
+                })
+                .then(response => {
+                    logDebug(`Status: ${response.status} ${response.statusText}`);
+                    return response.json().catch(e => {
+                        logDebug(`JSON parse error: ${e.message}`);
+                        return { error: 'Invalid JSON response' };
+                    });
+                })
+                .then(data => {
+                    logDebug(`Response data: ${JSON.stringify(data)}`);
+                })
+                .catch(error => {
+                    logDebug(`Fetch error: ${error.message}`);
+                });
+            });
+
+            const checkAuth = document.getElementById('checkAuth');
+            checkAuth.addEventListener('click', function() {
+                logDebug('Controleren auth status...');
+                
+                fetch('/api/auth/check', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                })
+                .then(response => {
+                    logDebug(`Status: ${response.status} ${response.statusText}`);
+                    return response.json().catch(e => {
+                        logDebug(`JSON parse error: ${e.message}`);
+                        return { error: 'Invalid JSON response' };
+                    });
+                })
+                .then(data => {
+                    logDebug(`Auth status: ${JSON.stringify(data)}`);
+                })
+                .catch(error => {
+                    logDebug(`Fetch error: ${error.message}`);
                 });
             });
         });

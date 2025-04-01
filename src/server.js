@@ -696,18 +696,20 @@ app.put('/api/bots/:id', checkAuth, async (req, res) => {
 app.post('/api/auth/login', (req, res) => {
     console.log('Login request ontvangen:', req.body);
     
-    const { username, wachtwoord } = req.body;
+    // Accepteer zowel 'password' als 'wachtwoord' parameter voor compatibiliteit
+    const { username, password, wachtwoord } = req.body;
+    const userPassword = password || wachtwoord;
     
-    if (!username || !wachtwoord) {
-        console.log('Gebruikersnaam of wachtwoord ontbreekt:', { username: !!username, wachtwoord: !!wachtwoord });
+    if (!username || !userPassword) {
+        console.log('Gebruikersnaam of wachtwoord ontbreekt:', { username: !!username, wachtwoord: !!userPassword });
         return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
     }
     
     console.log('Controleren op gebruiker in database:', username);
     const gebruiker = gebruikers[username];
     
-    if (!gebruiker || gebruiker.wachtwoord !== wachtwoord) {
-        console.log('Ongeldige inloggegevens:', { gebruikerBestaat: !!gebruiker, wachtwoordCorrect: gebruiker ? gebruiker.wachtwoord === wachtwoord : false });
+    if (!gebruiker || gebruiker.wachtwoord !== userPassword) {
+        console.log('Ongeldige inloggegevens:', { gebruikerBestaat: !!gebruiker, wachtwoordCorrect: gebruiker ? gebruiker.wachtwoord === userPassword : false });
         return res.status(401).json({ error: 'Ongeldige inloggegevens' });
     }
     
@@ -750,7 +752,7 @@ app.post('/api/auth/login', (req, res) => {
         res.json({
             success: true,
             token: token, // Stuur de token terug naar de client
-            gebruiker: {
+            user: {  // Hernoem naar 'user' voor consistentie met verwachting in frontend
                 username: gebruiker.username || username,
                 naam: gebruiker.naam,
                 rol: gebruiker.rol

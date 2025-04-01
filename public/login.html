@@ -210,7 +210,9 @@
                     // Sla de token op in localStorage
                     if (data.token) {
                         localStorage.setItem('auth-token', data.token);
-                        logDebug('Token opgeslagen in localStorage');
+                        // Zet ook een backup cookie voor Vercel
+                        document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=86400; SameSite=Lax`;
+                        logDebug('Token opgeslagen in localStorage en cookie');
                     }
                     
                     // Sla gebruikersinfo op in localStorage
@@ -241,13 +243,23 @@
                         // Vertraging toevoegen voor betrouwbare redirect met sessie
                         setTimeout(() => {
                             if (redirectUrl) {
-                                logDebug('Redirect naar: ' + redirectUrl);
-                                window.location.href = redirectUrl;
+                                // Voor Vercel voegen we de token toe aan de URL als query parameter
+                                const token = localStorage.getItem('auth-token');
+                                let targetUrl = redirectUrl;
+                                
+                                // Voeg token toe aan redirectUrl als het nog niet in de URL staat
+                                if (token && !targetUrl.includes('auth_token=')) {
+                                    const hasParams = targetUrl.includes('?');
+                                    targetUrl += (hasParams ? '&' : '?') + 'auth_token=' + encodeURIComponent(token);
+                                }
+                                
+                                logDebug('Redirect naar: ' + targetUrl);
+                                window.location.href = targetUrl;
                             } else {
                                 logDebug('Redirect naar index.html');
                                 window.location.href = '/index.html';
                             }
-                        }, 500); // Korte vertraging voor betere sessiebehandeling
+                        }, 1000); // Iets langere vertraging voor betere sessiebehandeling
                     })
                     .catch(error => {
                         logDebug('Sessie check error: ' + error);

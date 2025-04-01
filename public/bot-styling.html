@@ -9,11 +9,42 @@
         // Check auth status voordat de pagina laadt
         document.addEventListener('DOMContentLoaded', async function() {
             try {
+                // Check eerst of er een token in de URL staat (voor Vercel omgeving)
+                const urlParams = new URLSearchParams(window.location.search);
+                const authToken = urlParams.get('auth_token');
+                
+                // Als er een token in de URL staat, sla deze op in localStorage
+                if (authToken) {
+                    console.log('Token gevonden in URL parameters');
+                    localStorage.setItem('auth-token', authToken);
+                    
+                    // Zet ook een backup cookie
+                    document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=86400; SameSite=Lax`;
+                    
+                    // Verwijder de token uit de URL (history API) zonder pagina te herladen
+                    urlParams.delete('auth_token');
+                    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '') + window.location.hash;
+                    window.history.replaceState({}, document.title, newUrl);
+                }
+                
+                // Haal token uit localStorage voor de header
+                const storedToken = localStorage.getItem('auth-token');
+                const headers = {};
+                
+                if (storedToken) {
+                    headers['Authorization'] = `Bearer ${storedToken}`;
+                }
+                
                 // Controleer sessie status
                 console.log('Auth check uitvoeren...');
                 const authResponse = await fetch('/api/auth/check', {
                     method: 'GET',
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: {
+                        ...headers,
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
                 });
                 const authData = await authResponse.json();
                 

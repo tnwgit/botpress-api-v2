@@ -13,8 +13,11 @@ const app = express();
 const PORT = process.env.PORT || 3500;
 
 // Supabase configuratie
-const supabaseUrl = 'https://clngtypfotklhyekznzi.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsbmd0eXBmb3RrbGh5ZWt6bnppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNjI5MTIsImV4cCI6MjA1NzczODkxMn0.89eVhGEdDrQzQQ82zo_OizlzJ4K9X3xGIliwSOf2H8A';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://clngtypfotklhyekznzi.supabase.co';
+const supabaseKey = process.env.SUPABASE_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsbmd0eXBmb3RrbGh5ZWt6bnppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNjI5MTIsImV4cCI6MjA1NzczODkxMn0.89eVhGEdDrQzQQ82zo_OizlzJ4K9X3xGIliwSOf2H8A';
+// Expose values to the environment for other parts of the application to use
+process.env.SUPABASE_URL = supabaseUrl;
+process.env.SUPABASE_API_KEY = supabaseKey;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
@@ -186,20 +189,102 @@ const gebruikers = {
 
 // Root route toont configuratie pagina
 app.get('/', (req, res) => {
-    // Redirect naar login pagina indien niet ingelogd
-    if (!req.session || !req.session.gebruiker) {
-        return res.redirect('/login.html');
+    // De gebruiker heeft mogelijk een geldige auth cookie of token, maar geen sessie
+    // Controleer alle mogelijke authenticatiebronnen voordat we redirecten
+    
+    // 1. Controleer sessie
+    if (req.session && req.session.gebruiker) {
+        console.log('Root route: gebruiker ingelogd via sessie');
+        return res.sendFile(path.join(__dirname, '../public/index.html'));
     }
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    
+    // 2. Controleer auth cookie
+    const authCookie = req.cookies && req.cookies['bp-auth-token'];
+    if (authCookie === 'admin-auth-token') {
+        console.log('Root route: gebruiker geautoriseerd via auth cookie');
+        // Herstel de sessie
+        req.session.gebruiker = {
+            username: 'admin',
+            naam: 'Admin Gebruiker',
+            rol: 'admin'
+        };
+        return res.sendFile(path.join(__dirname, '../public/index.html'));
+    }
+    
+    // 3. Controleer JWT token in Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const token = authHeader.substring(7);
+            const decodedData = JSON.parse(Buffer.from(token, 'base64').toString());
+            
+            if (decodedData && decodedData.exp && decodedData.exp > Date.now()) {
+                console.log('Root route: gebruiker geautoriseerd via JWT token');
+                req.session.gebruiker = {
+                    username: decodedData.username,
+                    naam: decodedData.naam,
+                    rol: decodedData.rol
+                };
+                return res.sendFile(path.join(__dirname, '../public/index.html'));
+            }
+        } catch (e) {
+            console.error('Fout bij verwerken token:', e);
+        }
+    }
+    
+    // Geen geldige authenticatie gevonden
+    console.log('Root route: geen geldige authenticatie, doorsturen naar login');
+    return res.redirect('/login.html?redirect=' + encodeURIComponent('/'));
 });
 
 // Bot styling route
 app.get('/bot-styling', (req, res) => {
-    // Redirect naar login pagina indien niet ingelogd
-    if (!req.session || !req.session.gebruiker) {
-        return res.redirect('/login.html');
+    // De gebruiker heeft mogelijk een geldige auth cookie of token, maar geen sessie
+    // Controleer alle mogelijke authenticatiebronnen voordat we redirecten
+    
+    // 1. Controleer sessie
+    if (req.session && req.session.gebruiker) {
+        console.log('Bot styling: gebruiker ingelogd via sessie');
+        return res.sendFile(path.join(__dirname, '../public/bot-styling.html'));
     }
-    res.sendFile(path.join(__dirname, '../public/bot-styling.html'));
+    
+    // 2. Controleer auth cookie
+    const authCookie = req.cookies && req.cookies['bp-auth-token'];
+    if (authCookie === 'admin-auth-token') {
+        console.log('Bot styling: gebruiker geautoriseerd via auth cookie');
+        // Herstel de sessie
+        req.session.gebruiker = {
+            username: 'admin',
+            naam: 'Admin Gebruiker',
+            rol: 'admin'
+        };
+        return res.sendFile(path.join(__dirname, '../public/bot-styling.html'));
+    }
+    
+    // 3. Controleer JWT token in Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const token = authHeader.substring(7);
+            const decodedData = JSON.parse(Buffer.from(token, 'base64').toString());
+            
+            if (decodedData && decodedData.exp && decodedData.exp > Date.now()) {
+                console.log('Bot styling: gebruiker geautoriseerd via JWT token');
+                req.session.gebruiker = {
+                    username: decodedData.username,
+                    naam: decodedData.naam,
+                    rol: decodedData.rol
+                };
+                return res.sendFile(path.join(__dirname, '../public/bot-styling.html'));
+            }
+        } catch (e) {
+            console.error('Fout bij verwerken token:', e);
+        }
+    }
+    
+    // Geen geldige authenticatie gevonden
+    console.log('Bot styling: geen geldige authenticatie, doorsturen naar login');
+    return res.redirect('/login.html?redirect=' + encodeURIComponent('/bot-styling'));
 });
 
 // API endpoints
@@ -350,91 +435,82 @@ function extractWebhookId(url) {
     }
 }
 
-// API endpoint voor het ophalen van alle bots vanuit Supabase
+// API routes voor bot styling ophalen
 app.get('/api/bots', async (req, res) => {
-    // Controleer of dit een verzoek is voor een specifieke bot
-    const botIdFromQuery = req.query.botId;
-    
-    // Als er geen botId is opgegeven, controleer dan op authenticatie tenzij dit een verzoek is van de chat pagina
-    if (!botIdFromQuery && !req.session.gebruiker) {
-        return res.status(401).json({ error: 'Niet geautoriseerd' });
-    }
+    const sessionId = req.session.id ? req.session.id.substring(0, 7) + '...' : 'none';
+    console.log(`[${new Date().toISOString()}] GET /api/bots - SessionID: ${sessionId} - Gebruiker: ${req.session?.gebruiker?.username}`);
+    console.log('Cookies:', req.headers.cookie);    
     
     try {
         console.log('Ophalen bots van Supabase...');
         
-        // Probeer eerst bots op te halen uit Supabase
-        const { data, error } = await supabase
-            .from('bots')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Supabase error:', error);
-            
-            // Als Supabase faalt, val terug op lokaal opgeslagen bots
-            console.log('Vallen terug op lokale bots...');
-            const botsPath = path.join(__dirname, '../data/bots.json');
-            
-            if (!fs.existsSync(botsPath)) {
-                fs.writeFileSync(botsPath, JSON.stringify([
-                    {
-                        id: "1",
-                        name: "MECC Support",
-                        webhook_id: "d285e72b-3269-4d44-aebc-e08573bae48f"
-                    },
-                    {
-                        id: "2",
-                        name: "SAAM Restaurant Bot",
-                        webhook_id: "3d290364-e60d-478a-8396-aedda6747029"
-                    }
-                ], null, 2));
-            }
-            
-            const localBots = JSON.parse(fs.readFileSync(botsPath, 'utf8'));
-            console.log('Lokale bots opgehaald:', localBots);
-            
-            // Als we een specifieke bot zoeken, filter dan de resultaten
-            if (botIdFromQuery) {
-                const bot = localBots.find(b => b.id === botIdFromQuery);
-                return res.json(bot ? [bot] : []);
-            }
-            
-            return res.json(localBots);
+        // Instellen van headers
+        const supaHeaders = {};
+        // API key toevoegen als die bestaat
+        if (process.env.SUPABASE_API_KEY) {
+            supaHeaders['apikey'] = process.env.SUPABASE_API_KEY;
+            supaHeaders['Authorization'] = `Bearer ${process.env.SUPABASE_API_KEY}`;
         }
         
-        console.log('Bots opgehaald uit Supabase:', data);
+        // Voeg extra debug info toe aan response om problemen te kunnen diagnosticeren
+        let debugInfo = {
+            useSupabase: !!process.env.SUPABASE_URL,
+            supabaseUrl: process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL}/rest/v1/bots` : null,
+            hasApiKey: !!process.env.SUPABASE_API_KEY,
+            sessionExists: !!req.session,
+            userInSession: !!req.session?.gebruiker,
+            userDetails: req.session?.gebruiker ? {
+                username: req.session.gebruiker.username,
+                rol: req.session.gebruiker.rol
+            } : null
+        };
         
-        // Als we een specifieke bot zoeken, filter dan de resultaten
-        if (botIdFromQuery) {
-            const bot = data.find(b => b.id === botIdFromQuery);
-            return res.json(bot ? [bot] : []);
+        let bots = [];
+        
+        // Als Supabase URL is ingesteld, haal bots op uit Supabase
+        if (process.env.SUPABASE_URL) {
+            const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/bots?select=*`, {
+                headers: supaHeaders
+            });
+            
+            // Als de response niet OK is, log de fout
+            if (!response.ok) {
+                console.error('Fout bij ophalen bots uit Supabase:', response.status, response.statusText);
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                debugInfo.supabaseError = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorText: errorText
+                };
+            } else {
+                bots = await response.json();
+                console.log('Bots opgehaald uit Supabase:', bots);
+            }
+        } else {
+            // Fallback naar lokale JSON file als er geen Supabase URL is
+            console.log('Geen Supabase URL geconfigureerd, gebruikt lokale bots.json');
+            try {
+                const botsData = fs.readFileSync(path.join(__dirname, '../data/bots.json'), 'utf8');
+                bots = JSON.parse(botsData);
+                debugInfo.usingLocalFile = true;
+            } catch (fileError) {
+                console.error('Fout bij lezen van lokale bots.json:', fileError);
+                debugInfo.localFileError = fileError.message;
+            }
         }
         
-        res.json(data);
+        res.json({
+            bots: bots,
+            _debug: debugInfo
+        });
     } catch (error) {
-        console.error('Error fetching bots:', error);
-        
-        // Bij een algemene fout, val terug op lokale opslag
-        try {
-            const botsPath = path.join(__dirname, '../data/bots.json');
-            if (fs.existsSync(botsPath)) {
-                const localBots = JSON.parse(fs.readFileSync(botsPath, 'utf8'));
-                console.log('Lokale bots opgehaald na error:', localBots);
-                
-                // Als we een specifieke bot zoeken, filter dan de resultaten
-                if (botIdFromQuery) {
-                    const bot = localBots.find(b => b.id === botIdFromQuery);
-                    return res.json(bot ? [bot] : []);
-                }
-                
-                return res.json(localBots);
-            }
-        } catch (fsError) {
-            console.error('Kon ook lokale bots niet ophalen:', fsError);
-        }
-        
-        res.status(500).json({ error: 'Er is een fout opgetreden bij het ophalen van de bots' });
+        console.error('Fout bij ophalen bots:', error);
+        res.status(500).json({ 
+            error: 'Fout bij ophalen bots', 
+            message: error.message,
+            _debug: debugInfo
+        });
     }
 });
 

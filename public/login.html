@@ -230,91 +230,87 @@
         async function handleLogin(event) {
             event.preventDefault();
             
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const redirectUrlInput = document.getElementById('redirectUrl');
-            const messageContainer = document.getElementById('message-container');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const redirectUrl = document.getElementById('redirectUrl').value;
             
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-            const redirectUrl = redirectUrlInput.value;
-            
-            if (!username || !password) {
-                messageContainer.innerHTML = '<div class="alert alert-danger">Vul beide velden in</div>';
-                messageContainer.style.display = 'block';
-                return;
-            }
+            // Toon loading indicatie
+            const button = document.querySelector('button[type="submit"]');
+            const originalText = button.innerText;
+            button.innerText = 'Bezig met inloggen...';
+            button.disabled = true;
             
             try {
-                // Toon loading state
-                const submitButton = document.querySelector('button[type="submit"]');
-                const originalButtonText = submitButton.textContent;
-                submitButton.disabled = true;
-                submitButton.textContent = 'Inloggen...';
+                console.log('Login poging starten:', { username, hasPassword: !!password, redirectUrl });
                 
-                // Login request
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include' // Belangrijk voor het opslaan van cookies
                 });
                 
-                const data = await response.json();
+                console.log('Login response ontvangen, status:', response.status);
                 
-                if (response.ok && data.token) {
-                    // Sla token op in localStorage
-                    localStorage.setItem('auth-token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    
-                    // Set cookie voor Vercel omgeving
-                    document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=86400; SameSite=Lax`;
-                    document.cookie = `auth-token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
-                    
-                    // Als er een redirect URL is, stuur de gebruiker door
-                    if (redirectUrl) {
-                        // Voeg token toe aan redirect URL als het een Vercel omgeving is
-                        let finalRedirectUrl = redirectUrl;
-                        
-                        // Als we op Vercel draaien, voeg token toe aan URL parameters
-                        if (window.location.hostname.includes('vercel.app') || 
-                            window.location.hostname.includes('thenextwilson.ai')) {
-                            
-                            console.log('Vercel omgeving gedetecteerd, token toevoegen aan redirect URL');
-                            
-                            // Controleer of de URL al parameters heeft
-                            if (finalRedirectUrl.includes('?')) {
-                                finalRedirectUrl += `&auth_token=${data.token}`;
-                            } else {
-                                finalRedirectUrl += `?auth_token=${data.token}`;
-                            }
-                        }
-                        
-                        console.log('Redirect naar:', finalRedirectUrl);
-                        window.location.href = finalRedirectUrl;
-                    } else {
-                        // Anders naar de homepagina
-                        window.location.href = '/';
-                    }
-                } else {
-                    // Toon foutmelding
-                    messageContainer.innerHTML = `<div class="alert alert-danger">${data.message || 'Ongeldige inloggegevens'}</div>`;
-                    messageContainer.style.display = 'block';
-                    
-                    // Reset login button
-                    submitButton.disabled = false;
-                    submitButton.textContent = originalButtonText;
+                // Controleer of de request succesvol was
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Inloggen mislukt');
                 }
+                
+                const data = await response.json();
+                console.log('Login succesvol:', data);
+                
+                // Sla de auth token op in localStorage
+                if (data.token) {
+                    localStorage.setItem('auth-token', data.token);
+                    
+                    // Zet ook als cookie voor cross-domain authenticatie
+                    document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+                }
+                
+                // Sla gebruikersgegevens op
+                if (data.user) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                }
+                
+                // Toon succes melding
+                const messageContainer = document.getElementById('message-container');
+                if (messageContainer) {
+                    messageContainer.innerHTML = '<div class="alert alert-success">U bent succesvol ingelogd! U wordt doorgestuurd...</div>';
+                    messageContainer.style.display = 'block';
+                }
+                
+                // Forceer een kleine vertraging om gebruiker feedback te geven
+                setTimeout(() => {
+                    console.log('Doorverwijzen na login, redirect URL:', redirectUrl || '/');
+                    
+                    // Voeg auth_token toe aan URL als er een redirect is, om ervoor te zorgen dat 
+                    // de ontvangende pagina meteen de juiste authenticatie heeft
+                    if (redirectUrl) {
+                        // Check of de URL al parameters heeft
+                        const separator = redirectUrl.includes('?') ? '&' : '?';
+                        window.location.href = `${redirectUrl}${separator}auth_token=${data.token}`;
+                    } else {
+                        window.location.href = '/?auth_token=' + data.token;
+                    }
+                }, 1000);
+                
             } catch (error) {
                 console.error('Login error:', error);
-                messageContainer.innerHTML = '<div class="alert alert-danger">Er is een fout opgetreden bij het inloggen. Probeer het later opnieuw.</div>';
-                messageContainer.style.display = 'block';
                 
-                // Reset login button
-                const submitButton = document.querySelector('button[type="submit"]');
-                submitButton.disabled = false;
-                submitButton.textContent = 'Inloggen';
+                // Toon foutmelding
+                const messageContainer = document.getElementById('message-container');
+                if (messageContainer) {
+                    messageContainer.innerHTML = `<div class="alert alert-danger">${error.message || 'Inloggen mislukt. Controleer uw gebruikersnaam en wachtwoord.'}</div>`;
+                    messageContainer.style.display = 'block';
+                }
+                
+                // Reset button
+                button.innerText = originalText;
+                button.disabled = false;
             }
         }
     </script>

@@ -21,6 +21,7 @@
                 console.log('- URL token parameter aanwezig:', !!authTokenFromUrl);
                 console.log('- localStorage token aanwezig:', !!storedToken);
                 console.log('- Cookie aanwezig:', document.cookie.includes('bp-auth-token'));
+                console.log('- Alle cookies:', document.cookie);
                 
                 // Als er een token in de URL staat, sla deze op in localStorage
                 if (authTokenFromUrl) {
@@ -28,8 +29,8 @@
                     localStorage.setItem('auth-token', authTokenFromUrl);
                     
                     // Zet cookies die door beide domeinen gebruikt kunnen worden
-                    document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=86400; SameSite=Lax`;
-                    document.cookie = `auth-token=${authTokenFromUrl}; path=/; max-age=86400; SameSite=Lax`;
+                    document.cookie = `bp-auth-token=admin-auth-token; path=/; max-age=604800; SameSite=Lax`;
+                    document.cookie = `auth-token=${authTokenFromUrl}; path=/; max-age=604800; SameSite=Lax`;
                     
                     // Verwijder token uit URL zonder pagina te herladen
                     const cleanParams = new URLSearchParams(window.location.search);
@@ -48,8 +49,30 @@
                     headers['Authorization'] = `Bearer ${storedToken}`;
                 }
                 
+                console.log('Auth check aanvragen met headers:', headers);
+                
+                // Voer een extra forceer-sessie operatie uit als we een token hebben
+                if (authTokenFromUrl || storedToken) {
+                    try {
+                        // Maak een specifiek verzoek om de sessie te herstellen
+                        const forceSessieResponse = await fetch('/api/auth/check', {
+                            method: 'GET',
+                            credentials: 'include',
+                            headers: headers
+                        });
+                        
+                        if (forceSessieResponse.ok) {
+                            console.log('Pre-auth check succesvol, sessie zou nu hersteld moeten zijn');
+                        } else {
+                            console.warn('Pre-auth check niet succesvol, doorgaan met normale check');
+                        }
+                    } catch (preAuthError) {
+                        console.error('Fout bij pre-auth check:', preAuthError);
+                    }
+                }
+                
                 // Gebruik verschillende fetch methoden om auth status te controleren
-                console.log('Authenticatie check uitvoeren met headers:', headers);
+                console.log('Definitieve authenticatie check uitvoeren');
                 
                 const authResponse = await fetch('/api/auth/check', {
                     method: 'GET',
@@ -722,9 +745,16 @@
         <div id="notification" style="display: none;" class="notification"></div>
 
         <div class="bot-selector">
-            <label for="bot-select">Selecteer een Assistent:</label>
-            <select id="bot-select">
-                <option value="">Kies een assistent...</option>
+            <h2>Stap 1: Selecteer een assistent</h2>
+            <div id="loadingMessage" style="display: none; margin-bottom: 10px; color: #0056b3;">
+                <span class="loading-spinner"></span> Assistenten laden...
+            </div>
+            <div id="errorMessage" style="display: none; margin-bottom: 10px; color: #dc3545; padding: 10px; background-color: #f8d7da; border-radius: 4px;">
+            </div>
+            <div id="noBotsMessage" style="display: none; margin-bottom: 10px; color: #856404; padding: 10px; background-color: #fff3cd; border-radius: 4px;">
+            </div>
+            <select id="bot-select" onchange="loadBotStyling()">
+                <option value="">Selecteer een assistent</option>
             </select>
         </div>
 
@@ -1560,31 +1590,138 @@
 
         // Laad bots in selectiemenu
         async function loadBotsIntoSelect() {
+            console.log('Bots laden in select dropdown...');
+            const botSelect = document.getElementById('bot-select');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const noBotsMessage = document.getElementById('noBotsMessage');
+            
+            if (!botSelect) {
+                console.error('Bot select element niet gevonden!');
+                return;
+            }
+            
             try {
-                const bots = await fetchBots();
+                // Toon loading message
+                if (loadingMessage) loadingMessage.style.display = 'block';
+                if (errorMessage) errorMessage.style.display = 'none';
+                if (noBotsMessage) noBotsMessage.style.display = 'none';
+                
+                // Stel headers in met token uit localStorage
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                };
+                
+                const token = localStorage.getItem('auth-token');
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                console.log('API aanroepen met headers:', headers);
+                
+                // Haal bots op van de API
+                const response = await fetch('/api/bots', {
+                    method: 'GET',
+                    headers: headers,
+                    credentials: 'include'
+                });
+                
+                console.log('API response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API request mislukt: ${response.status} ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('API response data:', data);
+                
+                // Controleer of we de nieuwe of oude API response format hebben
+                const bots = Array.isArray(data) ? data : (data.bots || []);
+                console.log('Verwerkte bots array:', bots);
+                
+                // Verberg loading message
+                if (loadingMessage) loadingMessage.style.display = 'none';
+                
+                // Als er geen bots zijn, toon dan een bericht
                 if (!bots || bots.length === 0) {
-                    console.error('Geen bots gevonden');
-                    showNotification('Er zijn geen assistenten gevonden. Maak eerst een assistent aan in het dashboard.', 'error');
+                    if (noBotsMessage) {
+                        noBotsMessage.style.display = 'block';
+                        noBotsMessage.textContent = 'Er zijn geen assistenten gevonden. Voeg eerst een assistent toe op de overzichtspagina.';
+                    }
+                    console.warn('Geen bots gevonden in API response');
+                    
+                    // Debug informatie tonen
+                    const debugResponse = data._debug || {};
+                    console.log('Debug info van API:', debugResponse);
+                    
+                    // Toon debug info in UI als er iets mis is
+                    if (errorMessage) {
+                        errorMessage.style.display = 'block';
+                        errorMessage.innerHTML = `
+                            <p>Debug informatie:</p>
+                            <pre>${JSON.stringify(debugResponse, null, 2)}</pre>
+                            <p>Sessie: ${debugResponse.sessionExists ? 'Aanwezig' : 'Niet aanwezig'}</p>
+                            <p>Gebruiker in sessie: ${debugResponse.userInSession ? 'Ja' : 'Nee'}</p>
+                            <p>Supabase gebruikt: ${debugResponse.useSupabase ? 'Ja' : 'Nee'}</p>
+                        `;
+                    }
+                    
                     return;
                 }
                 
-                allBots = bots;
-                console.log('Bots geladen:', allBots);
+                // Leeg de select
+                botSelect.innerHTML = '';
                 
-                // Wis huidige opties
-                const selectElement = document.getElementById('bot-select');
-                selectElement.innerHTML = '<option value="">Selecteer een bot</option>';
+                // Voeg een placeholder toe
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = '';
+                placeholderOption.textContent = 'Selecteer een assistent...';
+                placeholderOption.disabled = true;
+                placeholderOption.selected = true;
+                botSelect.appendChild(placeholderOption);
                 
-                // Voeg bots toe aan dropdown
+                // Voeg elke bot toe aan de select
                 bots.forEach(bot => {
                     const option = document.createElement('option');
                     option.value = bot.id;
                     option.textContent = bot.name;
-                    selectElement.appendChild(option);
+                    botSelect.appendChild(option);
+                    console.log(`Bot toegevoegd aan dropdown: ${bot.name} (${bot.id})`);
                 });
+                
+                // Controleer of er een botId in de URL staat
+                const urlParams = new URLSearchParams(window.location.search);
+                const botIdFromUrl = urlParams.get('botId');
+                
+                if (botIdFromUrl) {
+                    // Zoek de bot in de lijst
+                    const foundOption = Array.from(botSelect.options).find(option => option.value === botIdFromUrl);
+                    
+                    if (foundOption) {
+                        // Selecteer de bot
+                        botSelect.value = botIdFromUrl;
+                        // Trigger change event om styling te laden
+                        botSelect.dispatchEvent(new Event('change'));
+                        console.log(`Bot uit URL geselecteerd: ${botIdFromUrl}`);
+                    } else {
+                        console.warn(`Bot uit URL (${botIdFromUrl}) niet gevonden in de lijst`);
+                    }
+                }
+                
             } catch (error) {
-                console.error('Fout bij laden bots:', error);
-                showNotification('Fout bij laden van assistenten', 'error');
+                console.error('Error bij laden van bots:', error);
+                
+                // Verberg loading message
+                if (loadingMessage) loadingMessage.style.display = 'none';
+                
+                // Toon error message
+                if (errorMessage) {
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = 'Fout bij laden van assistenten: ' + error.message;
+                }
             }
         }
 

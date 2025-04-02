@@ -179,12 +179,129 @@ export async function getBotStyling(botId) {
             throw error;
         }
         
-        console.log('Styling opgehaald:', data);
-        return data || {}; // Return leeg object als er geen styling is
+        if (!data) {
+            console.log('Geen styling gevonden voor bot, gebruik standaard styling');
+            return getDefaultStyling();
+        }
+        
+        console.log('Ruwe styling data opgehaald:', data);
+        
+        // Controleer of we een genest styling object hebben of een plat object
+        let stylingData;
+        
+        // Geval 1: We hebben een data.styling object dat alle informatie bevat
+        if (data.styling && typeof data.styling === 'object') {
+            console.log('Styling data gevonden in nested styling property:', data.styling);
+            stylingData = data.styling;
+            
+            // Controleer of de data in het juiste formaat is (geneste structuur)
+            if (stylingData.general || stylingData.colors || stylingData.text || stylingData.dimensions) {
+                console.log('Styling data heeft het juiste geneste formaat');
+                return stylingData;
+            } else {
+                console.log('Styling data heeft niet het juiste formaat, conversie uitvoeren');
+                // Probeer conversie naar gestructureerd formaat
+                return convertToStructuredStyling(stylingData);
+            }
+        } 
+        // Geval 2: We hebben een plat object zonder styling property
+        else {
+            console.log('Styling data lijkt een plat object te zijn zonder styling property');
+            // Maak een kopie zodat we database-specifieke velden kunnen verwijderen
+            const cleanedData = { ...data };
+            delete cleanedData.bot_id;
+            delete cleanedData.id;
+            delete cleanedData.created_at;
+            delete cleanedData.updated_at;
+            
+            // Probeer conversie naar gestructureerd formaat
+            return convertToStructuredStyling(cleanedData);
+        }
     } catch (error) {
         console.error('Error fetching bot styling:', error);
-        return {};
+        return getDefaultStyling();
     }
+}
+
+// Helper functie om styling data te converteren naar het gestandaardiseerde formaat
+function convertToStructuredStyling(data) {
+    console.log('Converteer data naar gestructureerd formaat:', data);
+    
+    // Check of data al in het juiste formaat is
+    if (data.general && data.colors && data.text && data.dimensions) {
+        console.log('Data al in het juiste formaat');
+        return data;
+    }
+    
+    // Conversie van platte structuur naar geneste structuur
+    try {
+        const structuredStyling = {
+            general: {
+                title: data.title || data.name || 'Chat Assistent',
+                logo: data.logo_url || data.logo || '',
+                welcomeImage: data.welcome_image_url || data.welcomeImage || '',
+                fontFamily: data.font_family || data.fontFamily || 'Arial, sans-serif'
+            },
+            colors: {
+                primary: data.primary_color || data.primary || '#2C6BED',
+                background: data.background_color || data.background || '#FFFFFF',
+                userBubble: data.user_message_color || data.userBubble || '#2C6BED',
+                botBubble: data.bot_message_color || data.botBubble || '#F0F0F0',
+                userText: data.user_message_text_color || data.userText || '#FFFFFF',
+                botText: data.bot_message_text_color || data.botText || '#333333',
+                titleText: data.header_text_color || data.titleText || '#FFFFFF'
+            },
+            text: {
+                welcomeMessage: data.welcome_message || data.welcomeMessage || 'Hallo! Hoe kan ik je helpen?',
+                placeholderText: data.user_input_placeholder || data.placeholderText || 'Type je bericht...'
+            },
+            dimensions: {
+                chatWidth: parseInt(data.width || data.chatWidth) || 400,
+                chatHeight: parseInt(data.height || data.chatHeight) || 600,
+                borderRadius: parseInt(data.border_radius || data.borderRadius) || 8,
+                showSuggestionsPanel: data.show_suggestions_panel !== false
+            },
+            suggestions: data.suggestions || []
+        };
+        
+        console.log('Conversie naar gestructureerd formaat voltooid:', structuredStyling);
+        return structuredStyling;
+    } catch (error) {
+        console.error('Fout bij converteren naar gestructureerd formaat:', error);
+        return getDefaultStyling();
+    }
+}
+
+// Standaard styling voor als er geen styling is gevonden
+function getDefaultStyling() {
+    return {
+        general: {
+            title: 'Chat Assistent',
+            logo: '',
+            welcomeImage: '',
+            fontFamily: 'Arial, sans-serif'
+        },
+        colors: {
+            primary: '#2C6BED',
+            background: '#FFFFFF',
+            userBubble: '#2C6BED',
+            botBubble: '#F0F0F0',
+            userText: '#FFFFFF',
+            botText: '#333333',
+            titleText: '#FFFFFF'
+        },
+        text: {
+            welcomeMessage: 'Hallo! Hoe kan ik je helpen?',
+            placeholderText: 'Type je bericht...'
+        },
+        dimensions: {
+            chatWidth: 400,
+            chatHeight: 600,
+            borderRadius: 8,
+            showSuggestionsPanel: true
+        },
+        suggestions: []
+    };
 }
 
 /**

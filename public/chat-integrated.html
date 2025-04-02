@@ -1225,25 +1225,52 @@
                 return;
             }
             
-            // Sla originele styling data op voor debugging
-            console.log('Toepassen van bot styling data:', styling);
+            // Uitgebreide debugging van styling object structuur
+            console.log('Toepassen van bot styling data (volledig object):', styling);
+            console.log('Styling object type:', typeof styling);
+            console.log('Styling object keys:', Object.keys(styling));
+            
+            // Check of alle benodigde sub-objecten aanwezig zijn
+            const hasGeneral = styling.general && typeof styling.general === 'object';
+            const hasColors = styling.colors && typeof styling.colors === 'object';
+            const hasText = styling.text && typeof styling.text === 'object';
+            const hasDimensions = styling.dimensions && typeof styling.dimensions === 'object';
+            
+            console.log('Styling structuur controle:', {
+                hasGeneral: hasGeneral,
+                hasColors: hasColors,
+                hasText: hasText,
+                hasDimensions: hasDimensions
+            });
+            
+            if (!hasGeneral || !hasColors || !hasText || !hasDimensions) {
+                console.warn('Waarschuwing: Styling object mist een of meer vereiste sub-objecten');
+                logToConsole('Waarschuwing: Styling object mist een of meer vereiste sub-objecten', 'warning', consoleOutput);
+            }
+            
             logToConsole('Bot styling data ontvangen', 'info', consoleOutput);
             
             // Sla styling op voor later gebruik
             botStyling = styling;
             
             // Algemene stijl
-            if (styling.general) {
+            if (hasGeneral) {
+                console.log('Toepassen general styling:', styling.general);
+                
                 // Bot titel/naam
                 if (styling.general.title) {
                     botNameHeader.textContent = styling.general.title;
                     logToConsole(`Bot titel ingesteld: ${styling.general.title}`, 'info', consoleOutput);
+                } else {
+                    console.log('Geen titel gevonden in styling.general');
                 }
                 
                 // Font family
                 if (styling.general.fontFamily) {
                     document.body.style.fontFamily = styling.general.fontFamily;
                     logToConsole(`Font family ingesteld: ${styling.general.fontFamily}`, 'info', consoleOutput);
+                } else {
+                    console.log('Geen fontFamily gevonden in styling.general');
                 }
                 
                 // Logo
@@ -1252,6 +1279,7 @@
                     botLogoImg.style.display = 'block';
                     logToConsole(`Logo ingesteld: ${styling.general.logo}`, 'info', consoleOutput);
                 } else {
+                    console.log('Geen logo gevonden in styling.general');
                     botLogoImg.style.display = 'none';
                 }
                 
@@ -1265,8 +1293,12 @@
                     welcomeImageContainer.classList.remove('hidden');
                     logToConsole(`Welkomstafbeelding ingesteld: ${styling.general.welcomeImage}`, 'info', consoleOutput);
                 } else {
+                    console.log('Geen welcomeImage gevonden in styling.general');
                     welcomeImageContainer.classList.add('hidden');
                 }
+            } else {
+                logToConsole('Geen general object gevonden in styling data', 'warning', consoleOutput);
+                console.warn('Geen general object gevonden in styling data');
             }
             
             // Veelgestelde vragen

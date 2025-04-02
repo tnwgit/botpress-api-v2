@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistent Styling Beheer</title>
+    <!-- <link rel="stylesheet" href="/css/styles.css"> -->
+    <style>
+        /* Basis stijlen */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2C6BED;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        /* Layout componenten */
+        .page-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .page-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Bot selectie */
+        .bot-selector {
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .bot-selector h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        
+        .bot-selector select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        /* Navigatie koppelingen */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 20px;
+            color: #2C6BED;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-link svg {
+            margin-right: 5px;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Formulier stijlen */
+        .styling-form {
+            /* display: none; */ /* we maken het tijdelijk zichtbaar voor testen */
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid #2C6BED;
+            color: #2C6BED;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background: #fff;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        /* Kleur inputs */
+        .color-input {
+            display: flex;
+            align-items: center;
+        }
+        
+        .color-input input[type="color"] {
+            margin-right: 10px;
+        }
+        
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        /* Afbeelding preview */
+        .image-preview {
+            max-width: 200px;
+            max-height: 100px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        /* Actiebalk */
+        .actions {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .primary-button {
+            background: #2C6BED;
+            color: white;
+        }
+        
+        .secondary-button {
+            background: #e9ecef;
+            color: #333;
+        }
+        
+        .danger-button {
+            background: #dc3545;
+            color: white;
+        }
+        
+        /* Suggesties */
+        .suggestions-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .suggestion-item {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .suggestion-item input {
+            flex: 1;
+        }
+        
+        .suggestion-item button {
+            margin-left: 10px;
+        }
+        
+        /* Notificaties */
+        .notification {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .notification.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .notification.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .notification.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        /* Debug container */
+        .debug-container {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 400px;
+            max-height: 300px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            display: none; /* Standaard verborgen */
+            z-index: 1000;
+            font-size: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: auto;
+        }
+        
+        .debug-container.visible {
+            display: block;
+        }
+        
+        .debug-content {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        
+        /* Debug toggle knop */
+        .debug-toggle {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(100, 100, 100, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 999;
+        }
+        
+        /* Preview container */
+        .preview-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f5f5f5;
+            height: 600px;
+        }
+        
+        .preview-title {
+            margin-top: 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .chat-preview {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-preview-header {
+            padding: 10px 15px;
+            background: #2C6BED;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-preview-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fff;
+        }
+        
+        .chat-preview-footer {
+            padding: 10px;
+            background: #f9f9f9;
+            border-top: 1px solid #ddd;
+            display: flex;
+        }
+        
+        .message {
+            max-width: 75%;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+        }
+        
+        .message.user {
+            margin-left: auto;
+            background: #2C6BED;
+            color: white;
+        }
+        
+        .message.bot {
+            margin-right: auto;
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #007bff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 5px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/index.html" class="back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Terug naar dashboard
+        </a>
+
+        <h1>Assistent Styling Beheer</h1>
+        
+        <div id="notification" class="notification"></div>
+        
+        <div class="bot-selector">
+            <h2>Selecteer een assistent</h2>
+            <div id="loading-bots" style="display: none;">
+                <span class="loading-spinner"></span> Assistenten laden...
+            </div>
+            <select id="bot-selector">
+                <option value="">-- Selecteer een assistent --</option>
+            </select>
+        </div>
+        
+        <div id="styling-form" class="styling-form">
+            <div class="page-grid">
+                <div class="form-section">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="general">Algemeen</div>
+                        <div class="tab" data-tab="colors">Kleuren</div>
+                        <div class="tab" data-tab="text">Teksten</div>
+                        <div class="tab" data-tab="suggestions">Suggesties</div>
+                        <div class="tab" data-tab="dimensions">Afmetingen</div>
+                    </div>
+                    
+                    <div id="general" class="tab-content active">
+                        <h2>Algemene Instellingen</h2>
+                        <div class="form-group">
+                            <label for="bot-title">Assistent Titel:</label>
+                            <input type="text" id="bot-title" placeholder="Voer de titel in" required>
+                            <small>Deze titel wordt bovenaan in de chat weergegeven.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="logo-url">Logo URL:</label>
+                            <input type="text" id="logo-url" placeholder="URL naar logo afbeelding">
+                            <div style="margin-top: 10px;">
+                                <label for="logo-file">Of upload een logo:</label>
+                                <input type="file" id="logo-file" accept="image/*">
+                            </div>
+                            <img id="logo-preview" class="image-preview" style="display: none;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="welcome-image-url">Welkomstafbeelding URL:</label>
+                            <input type="text" id="welcome-image-url" placeholder="URL naar welkomstafbeelding">
+                            <div style="margin-top: 10px;">
+                                <label for="welcome-image-file">Of upload een welkomstafbeelding:</label>
+                                <input type="file" id="welcome-image-file" accept="image/*">
+                            </div>
+                            <img id="welcome-image-preview" class="image-preview" style="display: none;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="font-family">Lettertype:</label>
+                            <select id="font-family">
+                                <option value="Arial, sans-serif">Arial</option>
+                                <option value="'Times New Roman', serif">Times New Roman</option>
+                                <option value="'Courier New', monospace">Courier New</option>
+                                <option value="Georgia, serif">Georgia</option>
+                                <option value="Verdana, sans-serif">Verdana</option>
+                                <option value="Roboto, sans-serif">Roboto</option>
+                                <option value="'Open Sans', sans-serif">Open Sans</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="colors" class="tab-content">
+                        <h2>Kleurinstellingen</h2>
+                        
+                        <div class="form-group">
+                            <label for="primary-color">Primaire Kleur:</label>
+                            <div class="color-input">
+                                <input type="color" id="primary-color" value="#2C6BED">
+                                <div class="color-preview" id="primary-color-preview" style="background-color: #2C6BED;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="background-color">Achtergrond Kleur:</label>
+                            <div class="color-input">
+                                <input type="color" id="background-color" value="#FFFFFF">
+                                <div class="color-preview" id="background-color-preview" style="background-color: #FFFFFF;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="user-bubble-color">Gebruiker Bericht Achtergrond:</label>
+                            <div class="color-input">
+                                <input type="color" id="user-bubble-color" value="#2C6BED">
+                                <div class="color-preview" id="user-bubble-color-preview" style="background-color: #2C6BED;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bot-bubble-color">Bot Bericht Achtergrond:</label>
+                            <div class="color-input">
+                                <input type="color" id="bot-bubble-color" value="#F0F0F0">
+                                <div class="color-preview" id="bot-bubble-color-preview" style="background-color: #F0F0F0;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="user-text-color">Gebruiker Tekstkleur:</label>
+                            <div class="color-input">
+                                <input type="color" id="user-text-color" value="#FFFFFF">
+                                <div class="color-preview" id="user-text-color-preview" style="background-color: #FFFFFF;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bot-text-color">Bot Tekstkleur:</label>
+                            <div class="color-input">
+                                <input type="color" id="bot-text-color" value="#333333">
+                                <div class="color-preview" id="bot-text-color-preview" style="background-color: #333333;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="title-text-color">Header Tekstkleur:</label>
+                            <div class="color-input">
+                                <input type="color" id="title-text-color" value="#FFFFFF">
+                                <div class="color-preview" id="title-text-color-preview" style="background-color: #FFFFFF;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="text" class="tab-content">
+                        <h2>Tekstinstellingen</h2>
+                        
+                        <div class="form-group">
+                            <label for="welcome-message">Welkomstbericht:</label>
+                            <input type="text" id="welcome-message" placeholder="Welkom! Hoe kan ik je helpen?">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="input-placeholder">Invoerveld Placeholder:</label>
+                            <input type="text" id="input-placeholder" placeholder="Type je bericht...">
+                        </div>
+                    </div>
+                    
+                    <div id="suggestions" class="tab-content">
+                        <h2>Suggesties</h2>
+                        <p>Voeg veelgestelde vragen toe die als knoppen worden weergegeven.</p>
+                        
+                        <div id="suggestions-container" class="suggestions-container">
+                            <!-- Suggesties worden hier dynamisch toegevoegd -->
+                        </div>
+                        
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label for="new-suggestion">Nieuwe suggestie:</label>
+                            <div class="suggestion-item">
+                                <input type="text" id="new-suggestion" placeholder="Voer een nieuwe suggestie in">
+                                <button type="button" id="add-suggestion" class="secondary-button">Toevoegen</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="dimensions" class="tab-content">
+                        <h2>Afmetingen</h2>
+                        
+                        <div class="form-group">
+                            <label for="chat-width">Chat Breedte (px):</label>
+                            <input type="number" id="chat-width" min="300" max="1200" value="400">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="chat-height">Chat Hoogte (px):</label>
+                            <input type="number" id="chat-height" min="300" max="1000" value="600">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="border-radius">Afronding hoeken (px):</label>
+                            <input type="number" id="border-radius" min="0" max="30" value="8">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="show-suggestions-panel">Suggesties paneel tonen:</label>
+                            <select id="show-suggestions-panel">
+                                <option value="true">Ja</option>
+                                <option value="false">Nee</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="actions">
+                        <button id="save-button" class="primary-button">
+                            <span id="save-spinner" class="loading-spinner" style="display: none;"></span>
+                            Wijzigingen Opslaan
+                        </button>
+                        <button id="reset-button" class="secondary-button">Resetten</button>
+                        <button id="try-chat-button" class="secondary-button">Chat Testen</button>
+                    </div>
+                </div>
+                
+                <div class="preview-section">
+                    <h2 class="preview-title">Live Voorbeeld</h2>
+                    <div class="preview-container">
+                        <div class="chat-preview">
+                            <div class="chat-preview-header">
+                                <span id="preview-title">Chat met Assistent</span>
+                                <button class="preview-reset">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                        <path d="M3 3v5h5"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="chat-preview-messages" id="preview-messages">
+                                <div id="preview-welcome-container" style="text-align: center; padding: 20px;">
+                                    <img id="preview-welcome-img" style="max-width: 200px; max-height: 150px; display: none;">
+                                </div>
+                                
+                                <div class="message bot">Hallo! Hoe kan ik je helpen?</div>
+                                <div class="message user">Ik heb een vraag over mijn bestelling</div>
+                                <div class="message bot">Natuurlijk! Wat wil je precies weten over je bestelling?</div>
+                            </div>
+                            
+                            <div class="chat-preview-footer">
+                                <input type="text" id="preview-input" placeholder="Type je bericht..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <button style="margin-left: 10px; background: #2C6BED; color: white; border: none; padding: 8px 15px; border-radius: 4px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Debug container -->
+    <div id="debug-container" class="debug-container">
+        <h3>Debug Informatie</h3>
+        <div class="debug-content"></div>
+        <button id="clear-debug">Wissen</button>
+    </div>
+    
+    <button id="debug-toggle" class="debug-toggle">Debug Tonen</button>
+    
+    <!-- Javascript wordt in een apart bestand toegevoegd -->
+</body>
+</html> 
+
+<script>
+    // Globale variabelen
+    let currentBot = null;
+    let allBots = [];
+    let stylingCache = new Map();
+    
+    // DOM elementen
+    const debugContainer = document.getElementById('debug-container');
+    const debugContent = document.querySelector('.debug-content');
+    const debugToggle = document.getElementById('debug-toggle');
+    const clearDebugBtn = document.getElementById('clear-debug');
+    const notification = document.getElementById('notification');
+    const botSelector = document.getElementById('bot-selector');
+    const stylingForm = document.getElementById('styling-form');
+    const loadingBots = document.getElementById('loading-bots');
+    const saveButton = document.getElementById('save-button');
+    const resetButton = document.getElementById('reset-button');
+    const tryChatButton = document.getElementById('try-chat-button');
+    const saveSpinner = document.getElementById('save-spinner');
+    
+    // Debug functie
+    function log(message, type = 'info') {
+        console.log(`[${type.toUpperCase()}] ${message}`);
+        
+        if (debugContent) {
+            const p = document.createElement('p');
+            p.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            p.classList.add(type);
+            debugContent.appendChild(p);
+            
+            // Scroll naar beneden
+            debugContent.scrollTop = debugContent.scrollHeight;
+        }
+    }
+    
+    // Toon notificatie
+    function showNotification(message, type = 'info') {
+        if (!notification) return;
+        
+        notification.textContent = message;
+        notification.className = 'notification ' + type;
+        notification.style.display = 'block';
+        
+        // Verberg na 5 seconden
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 5000);
+        
+        log(`Notificatie getoond: ${message}`, type);
+    }
+    
+    // Ophalen van bots
+    async function fetchBots() {
+        try {
+            log('Ophalen van assistenten gestart');
+            loadingBots.style.display = 'block';
+            
+            // Maak de API call met authenticatie
+            const headers = { 'Content-Type': 'application/json' };
+            const authToken = localStorage.getItem('auth-token');
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+                log('Auth token toegevoegd aan headers');
+            } else {
+                log('Geen auth token gevonden in localStorage');
+            }
+            
+            // API call uitvoeren
+            log('API call uitvoeren naar /api/bots');
+            const response = await fetch('/api/bots', {
+                method: 'GET',
+                headers: headers,
+                credentials: 'include'
+            });
+            
+            // Log API response status
+            log(`API response status: ${response.status}`);
+            
+            // Error handling
+            if (!response.ok) {
+                throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+            }
+            
+            // Verwerk response
+            const data = await response.json();
+            log(`API response data: ${JSON.stringify(data).substring(0, 200)}...`);
+            
+            // Controleer de structuur van de response (kan direct een array zijn of een object met bots property)
+            let bots = [];
+            if (Array.isArray(data)) {
+                log('Response is een array van bots');
+                bots = data;
+            } else if (data && typeof data === 'object') {
+                if (data.bots && Array.isArray(data.bots)) {
+                    log('Response bevat een bots array property');
+                    bots = data.bots;
+                } else {
+                    log('Response is een object, maar bevat geen bots array. Proberen te interpreteren als enkele bot of lijst...');
+                    // Probeer een array te maken van alle properties die objecten zijn
+                    const possibleBots = Object.values(data).filter(val => typeof val === 'object' && val !== null);
+                    if (possibleBots.length > 0) {
+                        log(`${possibleBots.length} mogelijke bots gevonden in response`);
+                        bots = possibleBots;
+                    }
+                }
+            }
+            
+            log(`${bots.length} assistenten geïnterpreteerd uit response`);
+            
+            // Als we nog steeds geen bots hebben, probeer uit localStorage
+            if (bots.length === 0) {
+                const cachedBotsJson = localStorage.getItem('allBots');
+                if (cachedBotsJson) {
+                    try {
+                        const cachedBots = JSON.parse(cachedBotsJson);
+                        if (Array.isArray(cachedBots) && cachedBots.length > 0) {
+                            log(`${cachedBots.length} assistenten geladen uit localStorage cache`);
+                            bots = cachedBots;
+                        }
+                    } catch (e) {
+                        log(`Fout bij laden bots uit localStorage: ${e.message}`, 'error');
+                    }
+                }
+            }
+            
+            // Sla bots op voor later gebruik
+            allBots = bots;
+            
+            // Bewaar in localStorage voor cache
+            try {
+                localStorage.setItem('allBots', JSON.stringify(bots));
+                log('Bots opgeslagen in localStorage voor offline gebruik');
+            } catch (e) {
+                log(`Kon bots niet opslaan in localStorage: ${e.message}`, 'warning');
+            }
+            
+            return bots;
+        } catch (error) {
+            log(`Fout bij ophalen assistenten: ${error.message}`, 'error');
+            
+            // Probeer uit localStorage als fallback
+            const cachedBotsJson = localStorage.getItem('allBots');
+            if (cachedBotsJson) {
+                try {
+                    const cachedBots = JSON.parse(cachedBotsJson);
+                    if (Array.isArray(cachedBots) && cachedBots.length > 0) {
+                        log(`${cachedBots.length} assistenten geladen uit localStorage cache na API fout`, 'warning');
+                        allBots = cachedBots;
+                        return cachedBots;
+                    }
+                } catch (e) {
+                    log(`Fout bij laden bots uit localStorage: ${e.message}`, 'error');
+                }
+            }
+            
+            // Als er geen cache is, gooi de error door
+            throw error;
+        } finally {
+            loadingBots.style.display = 'none';
+        }
+    }
+    
+    // Ophalen van bot styling
+    async function fetchBotStyling(botId, force = false) {
+        if (!botId) {
+            log('Geen bot ID opgegeven voor styling ophalen', 'warning');
+            return getDefaultStyling();
+        }
+        
+        log(`Ophalen styling voor bot ${botId}`);
+        
+        // Check cache
+        if (!force && stylingCache.has(botId)) {
+            log('Styling gevonden in cache');
+            return stylingCache.get(botId);
+        }
+        
+        try {
+            // API call voorbereiden
+            const headers = { 'Content-Type': 'application/json' };
+            const authToken = localStorage.getItem('auth-token');
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+                log('Auth token toegevoegd aan styling-request');
+            } else {
+                log('Geen auth token beschikbaar voor styling-request', 'warning');
+            }
+            
+            // API call uitvoeren
+            const url = `/api/bot-styling/${botId}`;
+            log(`API call naar: ${url}`);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: headers,
+                credentials: 'include'
+            });
+            
+            log(`API response status: ${response.status}`);
+            
+            // Check response
+            if (response.status === 404) {
+                log(`Geen styling gevonden voor bot ${botId}, gebruik default styling`, 'warning');
+                const defaultStyling = getDefaultStyling();
+                stylingCache.set(botId, defaultStyling);
+                return defaultStyling;
+            }
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                log(`API error response: ${errorText}`, 'error');
+                throw new Error(`HTTP Error ${response.status}: ${errorText || response.statusText}`);
+            }
+            
+            // Verwerk response
+            const data = await response.json();
+            log(`API styling response ontvangen: ${JSON.stringify(data).substring(0, 200)}...`);
+            
+            // Controleer structuur en verwerk
+            const styling = processStyleData(data);
+            
+            // Sla op in cache
+            stylingCache.set(botId, styling);
+            
+            // Bewaar ook in localStorage als backup
+            try {
+                localStorage.setItem(`styling_${botId}`, JSON.stringify(styling));
+                log('Styling opgeslagen in localStorage voor offline gebruik');
+            } catch (e) {
+                log(`Kon styling niet opslaan in localStorage: ${e.message}`, 'warning');
+            }
+            
+            return styling;
+        } catch (error) {
+            log(`Fout bij ophalen styling: ${error.message}`, 'error');
+            log(`Stack trace: ${error.stack}`, 'error');
+            
+            // Probeer uit localStorage te laden
+            try {
+                const cachedStyling = localStorage.getItem(`styling_${botId}`);
+                if (cachedStyling) {
+                    log('Styling uit localStorage geladen als fallback');
+                    const parsedStyling = JSON.parse(cachedStyling);
+                    stylingCache.set(botId, parsedStyling);
+                    return parsedStyling;
+                }
+            } catch (e) {
+                log(`Kon styling niet laden uit localStorage: ${e.message}`, 'warning');
+            }
+            
+            // Return default styling bij fout
+            const defaultStyling = getDefaultStyling();
+            log('Default styling wordt gebruikt vanwege fout', 'warning');
+            return defaultStyling;
+        }
+    }
+    
+    // Verwerk styling data
+    function processStyleData(data) {
+        // Log originele data
+        log(`Originele styling data structuur: ${JSON.stringify(data).substring(0, 200)}...`);
+        
+        // Als data leeg is, gebruik default
+        if (!data || Object.keys(data).length === 0) {
+            log('Lege styling data ontvangen, gebruik standaard styling', 'warning');
+            return getDefaultStyling();
+        }
+        
+        // Als de styling in een 'styling' property zit (zoals opgeslagen in de database/bestand)
+        if (data.styling && typeof data.styling === 'object') {
+            log('Styling data zit in nested styling property, deze wordt gebruikt');
+            
+            const serverStyling = data.styling;
+            
+            // Converteer veld namen indien nodig van snake_case naar camelCase (serverformaat naar clientformaat)
+            const convertedStyling = {
+                general: {
+                    title: serverStyling.title || '',
+                    logo: serverStyling.logo_url || '',
+                    welcomeImage: serverStyling.welcome_image_url || '',
+                    fontFamily: serverStyling.font_family || 'Arial, sans-serif'
+                },
+                colors: {
+                    primary: serverStyling.primary_color || '#2C6BED',
+                    background: serverStyling.background_color || '#FFFFFF',
+                    userBubble: serverStyling.user_message_color || '#2C6BED',
+                    botBubble: serverStyling.bot_message_color || '#F0F0F0',
+                    userText: serverStyling.user_message_text_color || '#FFFFFF',
+                    botText: serverStyling.bot_message_text_color || '#333333',
+                    titleText: serverStyling.header_text_color || '#FFFFFF'
+                },
+                text: {
+                    welcomeMessage: serverStyling.welcome_message || 'Hallo! Hoe kan ik je helpen?',
+                    placeholderText: serverStyling.user_input_placeholder || 'Type je bericht...'
+                },
+                dimensions: {
+                    chatWidth: parseInt(serverStyling.width) || 400,
+                    chatHeight: parseInt(serverStyling.height) || 600,
+                    borderRadius: parseInt(serverStyling.border_radius) || 8,
+                    showSuggestionsPanel: serverStyling.show_suggestions_panel !== false
+                },
+                suggestions: serverStyling.suggestions || []
+            };
+            
+            log('Styling data geconverteerd van server naar client formaat');
+            return convertedStyling;
+        }
+        
+        // Check of het al in het juiste formaat is (nested objecten voor general, colors, etc.)
+        if (data.general || data.colors || data.text || data.dimensions) {
+            log('Styling data heeft al het juiste formaat');
+            return data;
+        }
+        
+        // Probeer het te converteren van een plat object naar genest object
+        try {
+            if (typeof data === 'object') {
+                // Als het een object is met de verwachte property namen
+                const flatToNested = {
+                    general: {
+                        title: data.title || '',
+                        logo: data.logo_url || data.logo || '',
+                        welcomeImage: data.welcome_image_url || data.welcomeImage || '',
+                        fontFamily: data.font_family || data.fontFamily || 'Arial, sans-serif'
+                    },
+                    colors: {
+                        primary: data.primary_color || data.primary || '#2C6BED',
+                        background: data.background_color || data.background || '#FFFFFF',
+                        userBubble: data.user_message_color || data.userBubble || '#2C6BED',
+                        botBubble: data.bot_message_color || data.botBubble || '#F0F0F0',
+                        userText: data.user_message_text_color || data.userText || '#FFFFFF',
+                        botText: data.bot_message_text_color || data.botText || '#333333',
+                        titleText: data.header_text_color || data.titleText || '#FFFFFF'
+                    },
+                    text: {
+                        welcomeMessage: data.welcome_message || data.welcomeMessage || 'Hallo! Hoe kan ik je helpen?',
+                        placeholderText: data.user_input_placeholder || data.placeholderText || 'Type je bericht...'
+                    },
+                    dimensions: {
+                        chatWidth: parseInt(data.width || data.chatWidth) || 400,
+                        chatHeight: parseInt(data.height || data.chatHeight) || 600,
+                        borderRadius: parseInt(data.border_radius || data.borderRadius) || 8,
+                        showSuggestionsPanel: data.show_suggestions_panel !== false
+                    },
+                    suggestions: data.suggestions || []
+                };
+                
+                log('Styling data geconverteerd van plat object naar genest object');
+                return flatToNested;
+            }
+        } catch (error) {
+            log(`Fout bij converteren styling: ${error.message}`, 'error');
+        }
+        
+        // Return default als we hier komen
+        log('Kon styling data niet interpreteren, gebruik standaard styling', 'error');
+        return getDefaultStyling();
+    }
+    
+    // Default styling
+    function getDefaultStyling() {
+        return {
+            general: {
+                title: 'Chat Assistent',
+                logo: '',
+                welcomeImage: '',
+                fontFamily: 'Arial, sans-serif'
+            },
+            colors: {
+                primary: '#2C6BED',
+                background: '#FFFFFF',
+                userBubble: '#2C6BED',
+                botBubble: '#F0F0F0',
+                userText: '#FFFFFF',
+                botText: '#333333',
+                titleText: '#FFFFFF'
+            },
+            text: {
+                welcomeMessage: 'Hallo! Hoe kan ik je helpen?',
+                placeholderText: 'Type je bericht...'
+            },
+            dimensions: {
+                chatWidth: 400,
+                chatHeight: 600,
+                borderRadius: 8,
+                showSuggestionsPanel: true
+            },
+            suggestions: []
+        };
+    }
+    
+    // Update het formulier met styling data
+    function updateForm(styling) {
+        log('Formulier bijwerken met styling data');
+        log(`Ontvangen styling object: ${JSON.stringify(styling).substring(0, 200)}...`);
+        
+        if (!styling) {
+            log('Geen styling data ontvangen!', 'error');
+            return;
+        }
+        
+        // Algemene instellingen
+        if (styling.general) {
+            log(`General object: ${JSON.stringify(styling.general)}`);
+            const botTitleElement = document.getElementById('bot-title');
+            const logoUrlElement = document.getElementById('logo-url');
+            const welcomeImageUrlElement = document.getElementById('welcome-image-url');
+            const fontFamilyElement = document.getElementById('font-family');
+            
+            if (botTitleElement) {
+                botTitleElement.value = styling.general.title || '';
+                log(`updateForm - title waarde: "${styling.general.title}"`);
+            } else {
+                log('Element bot-title niet gevonden', 'error');
+            }
+            
+            if (logoUrlElement) {
+                logoUrlElement.value = styling.general.logo || '';
+            } else {
+                log('Element logo-url niet gevonden', 'error');
+            }
+            
+            if (welcomeImageUrlElement) {
+                welcomeImageUrlElement.value = styling.general.welcomeImage || '';
+            } else {
+                log('Element welcome-image-url niet gevonden', 'error');
+            }
+            
+            if (fontFamilyElement) {
+                fontFamilyElement.value = styling.general.fontFamily || 'Arial, sans-serif';
+            } else {
+                log('Element font-family niet gevonden', 'error');
+            }
+            
+            // Update previews
+            updateImagePreview('logo-url', 'logo-preview');
+            updateImagePreview('welcome-image-url', 'welcome-image-preview');
+        } else {
+            log('Geen general object in styling data', 'warning');
+        }
+        
+        // Kleuren
+        if (styling.colors) {
+            log(`Colors object: ${JSON.stringify(styling.colors)}`);
+            updateFormElement('primary-color', styling.colors.primary || '#2C6BED');
+            updateFormElement('background-color', styling.colors.background || '#FFFFFF');
+            updateFormElement('user-bubble-color', styling.colors.userBubble || '#2C6BED');
+            updateFormElement('bot-bubble-color', styling.colors.botBubble || '#F0F0F0');
+            updateFormElement('user-text-color', styling.colors.userText || '#FFFFFF');
+            updateFormElement('bot-text-color', styling.colors.botText || '#333333');
+            updateFormElement('title-text-color', styling.colors.titleText || '#FFFFFF');
+            
+            // Update kleur previews
+            updatePreviewElement('primary-color-preview', styling.colors.primary || '#2C6BED');
+            updatePreviewElement('background-color-preview', styling.colors.background || '#FFFFFF');
+            updatePreviewElement('user-bubble-color-preview', styling.colors.userBubble || '#2C6BED');
+            updatePreviewElement('bot-bubble-color-preview', styling.colors.botBubble || '#F0F0F0');
+            updatePreviewElement('user-text-color-preview', styling.colors.userText || '#FFFFFF');
+            updatePreviewElement('bot-text-color-preview', styling.colors.botText || '#333333');
+            updatePreviewElement('title-text-color-preview', styling.colors.titleText || '#FFFFFF');
+        } else {
+            log('Geen colors object in styling data', 'warning');
+        }
+        
+        // Teksten
+        if (styling.text) {
+            log(`Text object: ${JSON.stringify(styling.text)}`);
+            updateFormElement('welcome-message', styling.text.welcomeMessage || 'Hallo! Hoe kan ik je helpen?');
+            updateFormElement('input-placeholder', styling.text.placeholderText || 'Type je bericht...');
+        } else {
+            log('Geen text object in styling data', 'warning');
+        }
+        
+        // Dimensies
+        if (styling.dimensions) {
+            log(`Dimensions object: ${JSON.stringify(styling.dimensions)}`);
+            updateFormElement('chat-width', styling.dimensions.chatWidth || 400);
+            updateFormElement('chat-height', styling.dimensions.chatHeight || 600);
+            updateFormElement('border-radius', styling.dimensions.borderRadius || 8);
+            updateFormElement('show-suggestions-panel', styling.dimensions.showSuggestionsPanel === false ? 'false' : 'true');
+        } else {
+            log('Geen dimensions object in styling data', 'warning');
+        }
+        
+        // Suggesties
+        updateSuggestions(styling.suggestions || []);
+        
+        // Update preview
+        updatePreview(styling);
+    }
+    
+    // Helper functie om formulier elementen bij te werken
+    function updateFormElement(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = value;
+        } else {
+            log(`Element ${id} niet gevonden`, 'error');
+        }
+    }
+    
+    // Helper functie om preview elementen bij te werken
+    function updatePreviewElement(id, backgroundColor) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.backgroundColor = backgroundColor;
+        } else {
+            log(`Preview element ${id} niet gevonden`, 'error');
+        }
+    }
+    
+    // Update image preview
+    function updateImagePreview(inputId, previewId) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        
+        if (!input || !preview) return;
+        
+        const url = input.value.trim();
+        
+        if (url) {
+            preview.src = url;
+            preview.style.display = 'block';
+            
+            // Voeg event listener toe voor error handling
+            preview.onerror = () => {
+                preview.style.display = 'none';
+                log(`Kan afbeelding niet laden: ${url}`, 'warning');
+            };
+            
+            preview.onload = () => {
+                log(`Afbeelding succesvol geladen: ${url}`);
+            };
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+    
+    // Update suggesties
+    function updateSuggestions(suggestions) {
+        const container = document.getElementById('suggestions-container');
+        
+        if (!container) return;
+        
+        // Leeg huidige suggesties
+        container.innerHTML = '';
+        
+        // Voeg suggesties toe
+        if (Array.isArray(suggestions) && suggestions.length > 0) {
+            suggestions.forEach(suggestion => {
+                addSuggestionToUI(suggestion);
+            });
+        }
+    }
+    
+    // Voeg een suggestie toe aan de UI
+    function addSuggestionToUI(text) {
+        const container = document.getElementById('suggestions-container');
+        
+        if (!container) return;
+        
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'suggestion-text';
+        input.value = text;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '×';
+        deleteBtn.className = 'secondary-button';
+        deleteBtn.addEventListener('click', () => {
+            item.remove();
+            updatePreview();
+        });
+        
+        item.appendChild(input);
+        item.appendChild(deleteBtn);
+        container.appendChild(item);
+    }
+    
+    // Update preview
+    function updatePreview(styling) {
+        log('Preview bijwerken');
+        
+        // Als geen styling is opgegeven, haal waarden op uit formulier
+        if (!styling) {
+            styling = getFormValues();
+        }
+        
+        // Update preview elementen
+        const previewTitle = document.getElementById('preview-title');
+        const previewMessages = document.getElementById('preview-messages');
+        const previewHeader = document.querySelector('.chat-preview-header');
+        const previewInput = document.getElementById('preview-input');
+        const previewWelcomeImg = document.getElementById('preview-welcome-img');
+        const previewWelcomeContainer = document.getElementById('preview-welcome-container');
+        const userMessages = document.querySelectorAll('.message.user');
+        const botMessages = document.querySelectorAll('.message.bot');
+        
+        // Algemene instellingen
+        if (styling.general) {
+            if (previewTitle) previewTitle.textContent = styling.general.title || 'Chat met Assistent';
+            
+            // Welkomstafbeelding
+            if (previewWelcomeImg && styling.general.welcomeImage) {
+                previewWelcomeImg.src = styling.general.welcomeImage;
+                previewWelcomeImg.style.display = 'block';
+                previewWelcomeContainer.style.display = 'block';
+            } else if (previewWelcomeImg) {
+                previewWelcomeImg.style.display = 'none';
+                previewWelcomeContainer.style.display = 'none';
+            }
+        }
+        
+        // Kleuren
+        if (styling.colors) {
+            if (previewHeader) previewHeader.style.backgroundColor = styling.colors.primary || '#2C6BED';
+            if (previewTitle) previewTitle.style.color = styling.colors.titleText || '#FFFFFF';
+            
+            // Berichtbubbels
+            userMessages.forEach(msg => {
+                msg.style.backgroundColor = styling.colors.userBubble || '#2C6BED';
+                msg.style.color = styling.colors.userText || '#FFFFFF';
+            });
+            
+            botMessages.forEach(msg => {
+                msg.style.backgroundColor = styling.colors.botBubble || '#F0F0F0';
+                msg.style.color = styling.colors.botText || '#333333';
+            });
+        }
+        
+        // Tekstinstellingen
+        if (styling.text && previewInput) {
+            previewInput.placeholder = styling.text.placeholderText || 'Type je bericht...';
+        }
+    }
+    
+    // Ophalen van formulierwaarden
+    function getFormValues() {
+        // Helper functie om veilig waarden uit elementen te halen
+        function getSafeValue(id, defaultValue = '') {
+            const element = document.getElementById(id);
+            if (!element) {
+                log(`Element met id '${id}' niet gevonden in DOM, gebruik standaardwaarde`, 'warning');
+                return defaultValue;
+            }
+            return element.value || defaultValue;
+        }
+
+        // Maak basis styling object
+        const styling = {
+            general: {
+                title: getSafeValue('bot-title', 'Chat Assistent'),
+                logo: getSafeValue('logo-url', ''),
+                welcomeImage: getSafeValue('welcome-image-url', ''),
+                fontFamily: getSafeValue('font-family', 'Arial, sans-serif')
+            },
+            colors: {
+                primary: getSafeValue('primary-color', '#2C6BED'),
+                background: getSafeValue('background-color', '#FFFFFF'),
+                userBubble: getSafeValue('user-bubble-color', '#2C6BED'),
+                botBubble: getSafeValue('bot-bubble-color', '#F0F0F0'),
+                userText: getSafeValue('user-text-color', '#FFFFFF'),
+                botText: getSafeValue('bot-text-color', '#333333'),
+                titleText: getSafeValue('title-text-color', '#FFFFFF')
+            },
+            text: {
+                welcomeMessage: getSafeValue('welcome-message', 'Hallo! Hoe kan ik je helpen?'),
+                placeholderText: getSafeValue('input-placeholder', 'Type je bericht...')
+            },
+            dimensions: {
+                chatWidth: parseInt(getSafeValue('chat-width', '400')) || 400,
+                chatHeight: parseInt(getSafeValue('chat-height', '600')) || 600,
+                borderRadius: parseInt(getSafeValue('border-radius', '8')) || 8,
+                showSuggestionsPanel: getSafeValue('show-suggestions-panel', 'true') === 'true'
+            },
+            suggestions: getSuggestions()
+        };
+        
+        log('Formulierwaarden opgehaald');
+        return styling;
+    }
+    
+    // Suggesties ophalen uit formulier
+    function getSuggestions() {
+        const suggestions = [];
+        const items = document.querySelectorAll('#suggestions-container .suggestion-item');
+        
+        items.forEach(item => {
+            const input = item.querySelector('.suggestion-text');
+            if (input && input.value.trim()) {
+                suggestions.push(input.value.trim());
+            }
+        });
+        
+        return suggestions;
+    }
+    
+    // Stylin opslaan
+    async function saveStyling() {
+        if (!currentBot) {
+            showNotification('Selecteer eerst een assistent', 'error');
+            return;
+        }
+        
+        try {
+            // Toon spinner en disable knop
+            saveSpinner.style.display = 'inline-block';
+            saveButton.disabled = true;
+            
+            log(`Styling opslaan voor bot: ${currentBot.name} (${currentBot.id})`);
+            
+            // Haal styling op uit formulier
+            const styling = getFormValues();
+            
+            // Valideer
+            if (!styling.general.title) {
+                throw new Error('Vul een titel in voor de assistent');
+            }
+            
+            // Bereid API call voor
+            const headers = { 'Content-Type': 'application/json' };
+            const authToken = localStorage.getItem('auth-token');
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            
+            // API call uitvoeren
+            const response = await fetch(`/api/bot-styling/${currentBot.id}`, {
+                method: 'POST',
+                headers: headers,
+                credentials: 'include',
+                body: JSON.stringify(styling)
+            });
+            
+            // Error handling
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP Error ${response.status}: ${errorText}`);
+            }
+            
+            // Verwerk response
+            const result = await response.json();
+            log(`API response: ${JSON.stringify(result)}`);
+            
+            // Verwijder uit cache
+            stylingCache.delete(currentBot.id);
+            
+            // Toon success melding
+            showNotification('Styling succesvol opgeslagen', 'success');
+        } catch (error) {
+            log(`Fout bij opslaan: ${error.message}`, 'error');
+            showNotification(`Fout bij opslaan: ${error.message}`, 'error');
+        } finally {
+            // Verberg spinner en enable knop
+            saveSpinner.style.display = 'none';
+            saveButton.disabled = false;
+        }
+    }
+    
+    // Event handlers instellen
+    function setupEventHandlers() {
+        log('Event handlers instellen');
+        
+        // Bot selector
+        botSelector.addEventListener('change', async () => {
+            const botId = botSelector.value;
+            
+            if (!botId) {
+                stylingForm.style.display = 'none';
+                currentBot = null;
+                return;
+            }
+            
+            try {
+                // Bot vinden in lijst
+                currentBot = allBots.find(bot => bot.id === botId);
+                
+                if (!currentBot) {
+                    throw new Error('Geselecteerde assistent niet gevonden');
+                }
+                
+                log(`Assistent geselecteerd: ${currentBot.name} (${currentBot.id})`);
+                
+                // Toon formulier
+                stylingForm.style.display = 'block';
+                
+                // Styling ophalen
+                const styling = await fetchBotStyling(botId);
+                
+                // Formulier bijwerken
+                updateForm(styling);
+            } catch (error) {
+                log(`Fout bij selecteren assistent: ${error.message}`, 'error');
+                showNotification(`Fout bij laden assistent: ${error.message}`, 'error');
+            }
+        });
+        
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Verwijder active van alle tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Activeer geselecteerde tab
+                tab.classList.add('active');
+                const contentId = tab.getAttribute('data-tab');
+                const content = document.getElementById(contentId);
+                
+                if (content) {
+                    content.classList.add('active');
+                }
+            });
+        });
+        
+        // Logo bestand upload
+        document.getElementById('logo-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataURL = e.target.result;
+                    document.getElementById('logo-url').value = dataURL;
+                    updateImagePreview('logo-url', 'logo-preview');
+                    updatePreview();
+                    log('Logo bestand geüpload en geconverteerd naar data URL');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Welkomstafbeelding bestand upload
+        document.getElementById('welcome-image-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataURL = e.target.result;
+                    document.getElementById('welcome-image-url').value = dataURL;
+                    updateImagePreview('welcome-image-url', 'welcome-image-preview');
+                    updatePreview();
+                    log('Welkomstafbeelding bestand geüpload en geconverteerd naar data URL');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Afbeeldingen URL inputs
+        document.getElementById('logo-url').addEventListener('input', () => {
+            updateImagePreview('logo-url', 'logo-preview');
+            updatePreview();
+        });
+        
+        document.getElementById('welcome-image-url').addEventListener('input', () => {
+            updateImagePreview('welcome-image-url', 'welcome-image-preview');
+            updatePreview();
+        });
+        
+        // Kleur inputs
+        document.querySelectorAll('input[type="color"]').forEach(input => {
+            input.addEventListener('input', () => {
+                // Update preview
+                const previewId = input.id + '-preview';
+                const preview = document.getElementById(previewId);
+                
+                if (preview) {
+                    preview.style.backgroundColor = input.value;
+                }
+                
+                // Update algemene preview
+                updatePreview();
+            });
+        });
+        
+        // Suggesties
+        document.getElementById('add-suggestion').addEventListener('click', () => {
+            const input = document.getElementById('new-suggestion');
+            const text = input.value.trim();
+            
+            if (text) {
+                addSuggestionToUI(text);
+                input.value = '';
+                updatePreview();
+            }
+        });
+        
+        // Save button
+        saveButton.addEventListener('click', saveStyling);
+        
+        // Reset button
+        resetButton.addEventListener('click', () => {
+            if (confirm('Weet je zeker dat je alle wijzigingen wilt resetten?')) {
+                updateForm(getDefaultStyling());
+            }
+        });
+        
+        // Try chat button
+        tryChatButton.addEventListener('click', () => {
+            if (!currentBot) {
+                showNotification('Selecteer eerst een assistent', 'error');
+                return;
+            }
+            
+            // Sla styling eerst op
+            saveStyling().then(() => {
+                // Navigeer naar chat pagina
+                window.location.href = `/chat-integrated.html?bot=${currentBot.id}`;
+            });
+        });
+        
+        // Debug toggle
+        debugToggle.addEventListener('click', () => {
+            if (debugContainer.style.display === 'none' || !debugContainer.style.display) {
+                debugContainer.style.display = 'block';
+                debugToggle.textContent = 'Debug Verbergen';
+            } else {
+                debugContainer.style.display = 'none';
+                debugToggle.textContent = 'Debug Tonen';
+            }
+        });
+        
+        // Clear debug
+        clearDebugBtn.addEventListener('click', () => {
+            debugContent.innerHTML = '';
+        });
+    }
+    
+    // Initialisatie
+    async function init() {
+        log('Applicatie initialiseren - DEBUG MODUS');
+        log(`Huidige URL: ${window.location.href}`);
+        log(`Debug container gevonden: ${debugContainer ? 'Ja' : 'Nee'}`);
+        log(`Bot selector gevonden: ${botSelector ? 'Ja' : 'Nee'}`);
+        
+        // Debug container standaard verborgen houden
+        if (debugContainer) {
+            debugContainer.classList.remove('visible');
+            log('Debug container is verborgen');
+        }
+        
+        // Controleer of er ingelogd is met user info
+        const authToken = localStorage.getItem('auth-token');
+        log(`Auth token beschikbaar: ${authToken ? 'Ja' : 'Nee'}`);
+        
+        // Controleer localStorage voor andere sleutels
+        const storedBotId = localStorage.getItem('selectedBotId');
+        if (storedBotId) {
+            log(`Opgeslagen botId gevonden in localStorage: ${storedBotId}`);
+        }
+        
+        try {
+            // Event handlers instellen
+            setupEventHandlers();
+            
+            // Laad bots
+            log('Proberen bots op te halen...');
+            const bots = await fetchBots();
+            
+            log(`Opgehaalde bots: ${JSON.stringify(bots || []).substring(0, 100)}...`);
+            
+            // Vul selectie dropdown
+            if (bots && bots.length > 0) {
+                botSelector.innerHTML = '<option value="">-- Selecteer een assistent --</option>';
+                
+                bots.forEach(bot => {
+                    const option = document.createElement('option');
+                    option.value = bot.id;
+                    option.textContent = bot.name;
+                    botSelector.appendChild(option);
+                    log(`Bot toegevoegd aan dropdown: ${bot.name} (${bot.id})`);
+                });
+                
+                log(`${bots.length} assistenten in dropdown geladen`);
+            } else {
+                showNotification('Geen assistenten gevonden', 'warning');
+            }
+            
+            // Check URL parameters voor bot ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const botIdFromParams = urlParams.get('bot') || urlParams.get('botId');
+            
+            // Bepaal welke botId we gaan gebruiken (URL heeft voorrang)
+            const botIdToUse = botIdFromParams || storedBotId;
+            
+            if (botIdToUse) {
+                log(`Bot ID gevonden: ${botIdToUse} (bron: ${botIdFromParams ? 'URL' : 'localStorage'})`);
+                
+                // Check of de bot bestaat
+                const bot = bots.find(b => b.id === botIdToUse);
+                
+                if (bot) {
+                    // Selecteer in dropdown
+                    botSelector.value = botIdToUse;
+                    log(`Bot ${bot.name} is geselecteerd in dropdown`);
+                    
+                    // Sla geselecteerde bot op in localStorage voor later gebruik
+                    localStorage.setItem('selectedBotId', botIdToUse);
+                    
+                    // Trigger change event
+                    const event = new Event('change');
+                    botSelector.dispatchEvent(event);
+                } else {
+                    log(`Bot met ID ${botIdToUse} niet gevonden in opgehaalde bots`, 'warning');
+                    log('Beschikbare bot IDs: ' + bots.map(b => b.id).join(', '));
+                    
+                    // Als we deze bot niet kunnen vinden, probeer dan alle properties van de API response te checken
+                    log('Proberen bot te vinden in de ruwe data...');
+                    if (allBots && !Array.isArray(allBots) && typeof allBots === 'object') {
+                        // Mogelijk is allBots een object met bots
+                        const botKeys = Object.keys(allBots);
+                        log(`Gevonden keys in allBots object: ${botKeys.join(', ')}`);
+                        
+                        if (allBots[botIdToUse]) {
+                            const foundBot = allBots[botIdToUse];
+                            log(`Bot gevonden via directe property toegang: ${JSON.stringify(foundBot)}`);
+                            
+                            // Voeg toe aan dropdown
+                            const option = document.createElement('option');
+                            option.value = botIdToUse;
+                            option.textContent = foundBot.name || `Bot ${botIdToUse}`;
+                            botSelector.appendChild(option);
+                            
+                            // Selecteer
+                            botSelector.value = botIdToUse;
+                            
+                            // Trigger change event
+                            botSelector.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+            } else {
+                log('Geen bot ID gevonden in URL of localStorage');
+            }
+        } catch (error) {
+            log(`Fout bij initialisatie: ${error.message}`, 'error');
+            log(`Stack trace: ${error.stack}`, 'error');
+            showNotification(`Fout bij laden: ${error.message}`, 'error');
+        }
+    }
+    
+    // Start app wanneer document geladen is
+    document.addEventListener('DOMContentLoaded', init);
+</script> 

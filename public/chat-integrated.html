@@ -297,9 +297,15 @@
             max-height: 120px;
             line-height: 1.4;
             overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             transition: border-color 0.2s, box-shadow 0.2s;
             font-family: inherit;
+        }
+        
+        #message-input::-webkit-scrollbar {
+            display: none; /* Chrome, Safari en Opera */
         }
 
         #message-input:focus {
@@ -498,17 +504,7 @@
             }
             
             body > .show-debug {
-                top: unset;
-                bottom: 10px;
-                right: 10px;
-                font-size: 0.7em;
-                padding: 5px 8px;
-                z-index: 1000;
-            }
-            
-            .debug-container {
-                margin-top: 10px;
-                max-height: 150px;
+                display: none !important;
             }
         }
 
@@ -959,7 +955,7 @@
                 logToConsole('localStorage webhookId: ' + localStorage.getItem('currentWebhookId'), 'info', consoleOutput);
                 
                 // Alleen op desktop een debug-knop toevoegen
-                const isMobile = window.innerWidth <= 768;
+                const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 if (!isMobile) {
                     const toggleDebugButton = document.createElement('button');
                     toggleDebugButton.textContent = 'Toon Debug Info';
@@ -1221,41 +1217,38 @@
         }
         
         // Pas de bot styling toe
-        function applyBotStyling(stylingData) {
-            if (!stylingData) return;
+        function applyBotStyling(styling) {
+            if (!styling) {
+                logToConsole('Geen styling data ontvangen', 'warning', consoleOutput);
+                return;
+            }
             
             // Sla originele styling data op voor debugging
-            console.log('Ontvangen styling data:', stylingData);
-            
-            // Controleer of de styling in een geneste property zit
-            let styling = stylingData;
-            
-            if (stylingData.styling && typeof stylingData.styling === 'object') {
-                console.log('Geneste styling property gedetecteerd, gebruik deze in plaats van root object');
-                styling = stylingData.styling;
-            }
+            console.log('Toepassen van bot styling data:', styling);
+            logToConsole('Bot styling data ontvangen', 'info', consoleOutput);
             
             // Sla styling op voor later gebruik
             botStyling = styling;
-            
-            console.log('Toepassen van bot styling:', styling);
             
             // Algemene stijl
             if (styling.general) {
                 // Bot titel/naam
                 if (styling.general.title) {
                     botNameHeader.textContent = styling.general.title;
+                    logToConsole(`Bot titel ingesteld: ${styling.general.title}`, 'info', consoleOutput);
                 }
                 
                 // Font family
                 if (styling.general.fontFamily) {
                     document.body.style.fontFamily = styling.general.fontFamily;
+                    logToConsole(`Font family ingesteld: ${styling.general.fontFamily}`, 'info', consoleOutput);
                 }
                 
                 // Logo
                 if (styling.general.logo) {
                     botLogoImg.src = styling.general.logo;
                     botLogoImg.style.display = 'block';
+                    logToConsole(`Logo ingesteld: ${styling.general.logo}`, 'info', consoleOutput);
                 } else {
                     botLogoImg.style.display = 'none';
                 }
@@ -1268,6 +1261,7 @@
                     img.alt = 'Welkom';
                     welcomeImageContainer.appendChild(img);
                     welcomeImageContainer.classList.remove('hidden');
+                    logToConsole(`Welkomstafbeelding ingesteld: ${styling.general.welcomeImage}`, 'info', consoleOutput);
                 } else {
                     welcomeImageContainer.classList.add('hidden');
                 }
@@ -1297,17 +1291,20 @@
                 
                 // Zorg ervoor dat het panel zichtbaar is
                 document.querySelector('.chat-with-suggestions').style.flexDirection = 'row';
+                logToConsole(`${styling.suggestions.length} suggesties toegevoegd`, 'info', consoleOutput);
             } else {
                 // Verberg het panel volledig als er geen suggesties zijn
                 suggestionsPanel.style.display = 'none';
                 document.querySelector('.chat-with-suggestions').style.flexDirection = 'column';
                 document.querySelector('.chat-main').style.width = '100%';
                 document.querySelector('.chat-main').style.margin = '0';
+                logToConsole('Geen suggesties gevonden, panel verborgen', 'info', consoleOutput);
             }
             
             // Placeholder tekst voor de input
             if (styling.text && styling.text.placeholderText) {
                 messageInput.placeholder = styling.text.placeholderText;
+                logToConsole(`Placeholder tekst ingesteld: ${styling.text.placeholderText}`, 'info', consoleOutput);
             }
             
             // Dimensies
@@ -1317,11 +1314,13 @@
                 // Chat breedte
                 if (styling.dimensions.chatWidth) {
                     chatMain.style.width = `${styling.dimensions.chatWidth}px`;
+                    logToConsole(`Chat breedte ingesteld: ${styling.dimensions.chatWidth}px`, 'info', consoleOutput);
                 }
                 
                 // Chat hoogte
                 if (styling.dimensions.chatHeight) {
                     chatMain.style.height = `${styling.dimensions.chatHeight}px`;
+                    logToConsole(`Chat hoogte ingesteld: ${styling.dimensions.chatHeight}px`, 'info', consoleOutput);
                 }
                 
                 // Border radius
@@ -1334,12 +1333,14 @@
                     chatContainer.style.borderRadius = `${borderRadius}px`;
                     chatHeader.style.borderRadius = `${borderRadius}px ${borderRadius}px 0 0`;
                     chatInput.style.borderRadius = `0 0 ${borderRadius}px ${borderRadius}px`;
+                    logToConsole(`Border radius ingesteld: ${borderRadius}px`, 'info', consoleOutput);
                 }
                 
                 // Suggesties panel weergave
                 if (styling.dimensions.showSuggestionsPanel === false) {
                     suggestionsPanel.style.display = 'none';
                     document.querySelector('.chat-with-suggestions').style.justifyContent = 'center';
+                    logToConsole('Suggesties panel uitgeschakeld via dimensies', 'info', consoleOutput);
                 }
             }
             
@@ -1432,6 +1433,8 @@
                     ${layoutCSS}
                 `;
                 document.head.appendChild(styleEl);
+                
+                logToConsole('Kleurenschema toegepast', 'info', consoleOutput);
             }
             
             logToConsole('Bot styling succesvol toegepast', 'success', consoleOutput);

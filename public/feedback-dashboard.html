@@ -189,16 +189,25 @@
             padding: 10px 15px;
             margin: 8px 0;
             border-radius: var(--border-radius);
+            word-wrap: break-word;
+            max-width: 80%;
         }
 
         .chat-message.user {
-            background: #e9ecef;
-            margin-left: 20px;
+            background: #e1ecff;
+            color: #333;
+            margin-left: auto;
+            margin-right: 5px;
+            border-bottom-right-radius: 4px;
+            text-align: right;
         }
 
         .chat-message.bot {
             background: white;
-            margin-right: 20px;
+            color: #333;
+            margin-right: auto;
+            margin-left: 5px;
+            border-bottom-left-radius: 4px;
         }
 
         .no-feedback {
@@ -354,6 +363,10 @@
 
         function displayFeedback(feedbackData) {
             const container = document.getElementById('feedback-list');
+            const loadingElement = document.getElementById('loading');
+            
+            // Verberg de laad-indicator
+            loadingElement.style.display = 'none';
             
             if (!feedbackData || feedbackData.length === 0) {
                 container.innerHTML = `
@@ -381,6 +394,41 @@
 
                 // Converteer rating naar emoji's
                 const ratingEmoji = '⭐'.repeat(parseInt(item.rating) || 0);
+                
+                // Verwerk chatgeschiedenis - probeer deze te parsen als het een string is
+                let chatHistory = [];
+                if (item.chatHistory) {
+                    try {
+                        chatHistory = JSON.parse(item.chatHistory);
+                    } catch (e) {
+                        console.error('Fout bij parsen chatgeschiedenis:', e);
+                    }
+                } else if (item.chat_history) {
+                    try {
+                        // Als het een string is, probeer te parsen
+                        if (typeof item.chat_history === 'string') {
+                            chatHistory = JSON.parse(item.chat_history);
+                        } else if (Array.isArray(item.chat_history)) {
+                            // Als het al een array is, gebruik deze direct
+                            chatHistory = item.chat_history;
+                        }
+                    } catch (e) {
+                        console.error('Fout bij parsen chat_history:', e);
+                    }
+                }
+                
+                // Genereer HTML voor chatgeschiedenis als deze bestaat
+                let chatHistoryHTML = 'Geen chat geschiedenis beschikbaar';
+                if (chatHistory && chatHistory.length > 0) {
+                    chatHistoryHTML = chatHistory.map(msg => {
+                        const messageType = msg.type === 'user' ? 'user' : 'bot';
+                        return `
+                            <div class="chat-message ${messageType}">
+                                ${msg.text || ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
 
                 return `
                     <div class="feedback-item">
@@ -391,20 +439,32 @@
                         <div class="feedback-content">
                             <p>${item.comment || 'Geen commentaar'}</p>
                         </div>
-                        <div class="feedback-chat">
-                            <div class="chat-history">
-                                ${item.chat_history ? item.chat_history.map(msg => `
-                                    <div class="chat-message ${msg.type === 'user' ? 'user-message' : 'bot-message'}">
-                                        <div class="message-content">${msg.text}</div>
-                                    </div>
-                                `).join('') : 'Geen chat geschiedenis beschikbaar'}
-                            </div>
+                        <div class="chat-history">
+                            <h4>Chatgeschiedenis</h4>
+                            ${chatHistoryHTML}
                         </div>
                     </div>
                 `;
             }).join('');
 
             container.innerHTML = feedbackHTML;
+            
+            // Toon bot naam
+            const urlParams = new URLSearchParams(window.location.search);
+            const botId = urlParams.get('botId');
+            document.getElementById('bot-id').textContent = `ID: ${botId}`;
+            
+            // Haal bot naam op
+            fetch(`/api/bots/${botId}`, {
+                headers: addAuthorizationHeader()
+            })
+            .then(response => response.json())
+            .then(bot => {
+                document.getElementById('bot-name').textContent = bot.name || 'Bot Naam';
+            })
+            .catch(error => {
+                console.error('Fout bij ophalen bot naam:', error);
+            });
         }
 
         // Functie om feedback te downloaden als CSV

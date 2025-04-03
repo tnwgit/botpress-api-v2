@@ -56,13 +56,13 @@
             justify-content: center;
             align-items: center;
             width: 100%;
-            max-width: 300px;
-            margin: 0 auto 16px;
+            max-width: 400px;
+            margin: 0 auto 20px;
             padding: 0 10px;
         }
 
         .bot-logo img {
-            height: 60px;
+            height: 80px;
             width: auto;
             max-width: 100%;
             object-fit: contain;
@@ -84,8 +84,36 @@
             width: 100%;
             display: flex;
             justify-content: center;
-            gap: 16px;
+            gap: 24px;
+            margin: 0 auto;
+            max-width: 1200px;
+        }
+
+        /* Chat column - bevat chat en feedback */
+        .chat-column {
             flex: 1;
+            max-width: 650px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Suggesties kolom */
+        .suggestions-column {
+            width: 320px;
+            flex-shrink: 0;
+        }
+
+        /* Main container */
+        .main-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         /* Berichtencontainer */
@@ -117,9 +145,9 @@
 
         /* Suggesties paneel */
         .suggestions-panel {
-            width: 300px;
-            min-width: 300px;
-            max-width: 300px;
+            width: 100%;
+            min-width: 100%;
+            max-width: 100%;
             background: white;
             border-radius: 16px;
             padding: 16px;
@@ -130,7 +158,8 @@
             height: fit-content;
             max-height: calc(100vh - 200px);
             overflow-y: auto;
-            align-self: flex-start;
+            position: sticky;
+            top: 16px;
             -webkit-overflow-scrolling: touch;
         }
 
@@ -221,291 +250,6 @@
             }
         }
 
-        /* Mobiele aanpassingen */
-        @media (max-width: 768px) {
-            body {
-                padding: 8px;
-            }
-
-            .chat-with-suggestions {
-                flex-direction: column;
-            }
-
-            .suggestions-panel {
-                width: 100%;
-                min-width: 100%;
-                max-width: 100%;
-                order: -1;
-                max-height: none;
-                margin-bottom: 12px;
-            }
-
-            .chat-main {
-                height: 0;
-                flex: 1;
-            }
-
-            .message {
-                max-width: 90%;
-                font-size: 14px;
-                padding: 10px 14px;
-            }
-
-            .bot-logo {
-                margin-bottom: 12px;
-            }
-
-            .bot-logo img {
-                height: 50px;
-            }
-
-            .chat-messages {
-                padding: 12px;
-            }
-
-            .chat-header {
-                padding: 12px 16px;
-            }
-
-            .reset-button {
-                padding: 6px 10px;
-                font-size: 13px;
-            }
-        }
-
-        /* Dark mode ondersteuning */
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: #1a1a1a;
-            }
-
-            .chat-main, .suggestions-panel {
-                background: #2d2d2d;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            }
-
-            .message.bot {
-                background: #3a3a3a;
-                color: #ffffff;
-            }
-
-            .bot-name {
-                color: #ffffff;
-            }
-        }
-
-        /* Basis reset en algemene stijlen */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            background: #f5f5f5;
-        }
-
-        body {
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        /* Demo banner voor klanten */
-        .demo-banner {
-            background-color: #2C6BED;
-            color: white;
-            text-align: center;
-            padding: 8px 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        /* Bot logo */
-        .bot-logo {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto 20px;
-            padding: 0 10px;
-        }
-
-        .bot-logo img {
-            height: 80px;
-            width: auto;
-            max-width: 100%;
-            object-fit: contain;
-        }
-
-        /* Hoofdcontainer voor de chat */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 1200px;
-            padding: 0;
-            min-height: 500px;
-        }
-
-        /* De container die zowel chat als suggesties bevat */
-        .chat-with-suggestions {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        /* Berichtencontainer - verwijder vaste hoogte en voeg auto-height toe */
-        .chat-messages {
-            flex: 1;
-            overflow-y: visible;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            min-height: 200px;
-        }
-
-        /* De kern chatbox - verwijder vaste hoogte */
-        .chat-main {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            margin: 0;
-            box-sizing: border-box;
-            position: relative;
-        }
-
-        /* Suggesties paneel - maak breder */
-        .suggestions-panel {
-            width: 400px;
-            min-width: 400px;
-            max-width: 400px;
-            background: white;
-            border-radius: 8px;
-            padding: 18px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            height: auto;
-            max-height: none;
-            overflow-y: visible;
-            align-self: flex-start;
-        }
-
-        /* Wanneer er geen suggesties zijn */
-        .chat-with-suggestions:not(:has(.suggestions-panel:visible)) .chat-main,
-        .chat-with-suggestions:not(:has(.suggestions-panel[style*="display: block"])) .chat-main {
-            margin: 0 auto;
-            max-width: 600px;
-        }
-
-        /* Header van de chatbox */
-        .chat-header {
-            background-color: var(--primary-color, #007bff);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px 8px 0 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1;
-        }
-
-        .bot-name {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: white;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        /* Reset knop in header */
-        .reset-button {
-            background: transparent;
-            border: none;
-            padding: 5px;
-            cursor: pointer;
-            color: rgba(255, 255, 255, 0.7);
-            transition: all 0.2s;
-        }
-
-        .reset-button:hover {
-            color: white;
-        }
-
-        /* Welkomstafbeelding */
-        .welcome-image-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            position: absolute;
-            top: 50%;
-            left: 0;
-            transform: translateY(-50%);
-            padding: 10px;
-            transition: all 0.5s ease;
-            text-align: center;
-        }
-
-        .welcome-image-container img {
-            max-width: 100%;
-            max-height: 200px;
-            object-fit: contain;
-        }
-
-        .welcome-image-container.hidden {
-            display: none;
-        }
-
-        /* Berichtbellen */
-        .message {
-            max-width: 80%;
-            margin: 5px;
-            padding: 10px 12px;
-            border-radius: 12px;
-            word-wrap: break-word;
-            display: inline-block;
-            width: fit-content;
-            line-height: 1.4;
-            white-space: pre-wrap;
-        }
-
-        .message.user {
-            background: var(--user-bubble, #007bff);
-            color: var(--user-text, white);
-            margin-left: auto;
-            float: right;
-            clear: both;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message.bot {
-            background: var(--bot-bubble, #f8f9fa);
-            color: var(--bot-text, #212529);
-            margin-right: auto;
-            float: left;
-            clear: both;
-            border-bottom-left-radius: 4px;
-        }
-
         /* Typing indicator */
         .typing-indicator {
             display: none;
@@ -530,7 +274,7 @@
             height: 8px;
             border-radius: 50%;
             animation: typingBounce 1.4s infinite;
-            background: var(--primary-color, #007bff);
+            background: var(--primary-color, #2C6BED);
             opacity: 0.7;
         }
 
@@ -563,7 +307,7 @@
             gap: 10px;
             position: relative;
             z-index: 1;
-            border-radius: 0 0 8px 8px;
+            border-radius: 0 0 16px 16px;
             box-sizing: border-box;
             width: 100%;
         }
@@ -573,7 +317,7 @@
             padding: 12px 15px;
             border: 1px solid #e0e0e0;
             border-radius: 20px;
-            font-size: 1rem;
+            font-size: 15px;
             resize: none;
             height: 45px;
             min-height: 45px;
@@ -586,7 +330,6 @@
             transition: border-color 0.2s;
             font-family: inherit;
             box-sizing: border-box;
-            width: calc(100% - 55px); /* Breedte van input = totale breedte - send button (45px) - gap (10px) */
         }
         
         #message-input::-webkit-scrollbar {
@@ -595,7 +338,7 @@
 
         #message-input:focus {
             outline: none;
-            border-color: var(--primary-color, #007bff);
+            border-color: var(--primary-color, #2C6BED);
         }
 
         /* Verzendknop */
@@ -603,7 +346,7 @@
             width: 45px;
             height: 45px;
             border-radius: 50%;
-            background-color: var(--primary-color, #007bff);
+            background-color: var(--primary-color, #2C6BED);
             color: white;
             border: none;
             padding: 0;
@@ -612,6 +355,7 @@
             justify-content: center;
             cursor: pointer;
             transition: transform 0.2s;
+            flex-shrink: 0;
         }
 
         #send-btn:hover {
@@ -621,7 +365,7 @@
         /* Suggestie buttons */
         .suggestions-panel h3 {
             margin-bottom: 15px;
-            font-size: 1rem;
+            font-size: 16px;
             color: #555;
             border-bottom: 1px solid #eee;
             padding-bottom: 8px;
@@ -635,7 +379,7 @@
             cursor: pointer;
             text-align: left;
             transition: all 0.2s;
-            font-size: 0.9em;
+            font-size: 14px;
             line-height: 1.4;
             margin-bottom: 10px;
             width: 100%;
@@ -646,566 +390,54 @@
             transform: translateY(-1px);
         }
 
-        /* Debug container */
-        .debug-container {
-            display: none;
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            width: 300px;
-            max-height: 300px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .debug-container.visible {
-            display: block;
-        }
-
-        .debug-log p {
-            margin: 0;
-            padding: 2px 0;
-        }
-
-        .debug-log p.error { color: #dc3545; }
-        .debug-log p.success { color: #28a745; }
-        .debug-log p.info { color: #17a2b8; }
-
-        /* Responsieve aanpassingen */
-        @media (max-width: 900px) {
-            body {
-                padding: 10px;
-            }
-            
-            .chat-container {
-                padding: 10px;
-                height: calc(100vh - 140px);
-            }
-            
-            .chat-with-suggestions {
-                flex-direction: column;
-            }
-
-            .chat-main {
-                width: 100% !important;
-                max-width: 100% !important;
-                min-width: 100% !important;
-                height: auto !important;
-                min-height: 70vh !important;
-                margin: 0 auto !important;
-            }
-            
-            .suggestions-panel {
-                width: 100% !important;
-                max-width: 100% !important;
-                min-width: 100% !important;
-                margin: 10px 0 0 0 !important;
-                height: auto !important;
-            }
-            
-            #bot-logo-img {
-                max-height: 60px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 5px;
-            }
-            
-            .back-to-admin {
-                top: 10px;
-                left: 10px;
-                padding: 5px 8px;
-                font-size: 0.8em;
-            }
-            
-            .bot-logo {
-                margin-bottom: 10px;
-            }
-            
-            #bot-logo-img {
-                max-height: 50px;
-            }
-            
-            .chat-container {
-                padding: 5px;
-                height: calc(100vh - 110px);
-            }
-            
-            .chat-main {
-                border-radius: 6px;
-                height: auto !important;
-                min-height: 80vh !important;
-            }
-            
-            .chat-header {
-                padding: 10px 15px;
-            }
-            
-            .bot-name {
-                font-size: 1.1em;
-            }
-            
-            .message {
-                max-width: 85%;
-                font-size: 0.95em;
-                padding: 8px 10px;
-            }
-            
-            .chat-input {
-                padding: 10px;
-            }
-            
-            #message-input {
-                padding: 10px;
-                height: 40px;
-                min-height: 40px;
-                font-size: 0.95em;
-            }
-            
-            #send-btn {
-                width: 40px;
-                height: 40px;
-            }
-            
-            .welcome-image-container img {
-                max-height: 120px;
-            }
-            
-            .suggestions-panel {
-                padding: 12px !important;
-            }
-            
-            .suggestion-button {
-                padding: 10px;
-                font-size: 0.85em;
-                margin-bottom: 8px;
-            }
-            
-            .suggestions-panel h3 {
-                font-size: 0.9rem;
-                margin-bottom: 10px;
-            }
-        }
-        
-        /* Fix voor kleine schermen en landschap oriëntatie */
-        @media (max-height: 500px) {
-            body {
-                padding: 5px;
-            }
-            
-            .bot-logo {
-                margin-bottom: 10px;
-            }
-            
-            #bot-logo-img {
-                max-height: 40px;
-            }
-            
-            .chat-container {
-                height: calc(100vh - 80px);
-                min-height: 300px;
-            }
-            
-            .welcome-image-container img {
-                max-height: 100px;
-            }
-            
-            .chat-main {
-                min-height: 300px !important;
-            }
-        }
-        
-        /* Touch device optimalisaties */
-        @media (hover: none) {
-            .suggestion-button {
-                padding: 12px;
-            }
-            
-            #message-input {
-                font-size: 16px; /* Voorkomt inzoomen op iOS bij focus */
-            }
-            
-            #send-btn {
-                min-width: 44px; /* Verbeterde toegankelijkheid voor aanraakdoelen */
-                min-height: 44px;
-            }
-        }
-
-        /* Bot selector dropdown voor klanten */
-        .bot-selector {
-            margin: 0 auto 20px;
-            max-width: 400px;
-            width: 100%;
+        /* Welkomstafbeelding */
+        .welcome-image-container {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .bot-selector label {
-            font-weight: bold;
-            color: #2C6BED;
-        }
-
-        .bot-selector select {
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
             padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-        }
-
-        /* Error message when no botId is provided */
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px auto;
-            max-width: 600px;
+            transition: all 0.5s ease;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
+        .welcome-image-container img {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+        }
+
+        .welcome-image-container.hidden {
+            display: none;
+        }
+
+        /* Feedback styling */
         .feedback-container {
             width: 100%;
             margin: 20px 0;
             box-sizing: border-box;
-            max-width: 600px; /* Zelfde als chat-main */
             padding: 0;
         }
 
         .feedback-inner {
             width: 100%;
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             padding: 20px;
             box-sizing: border-box;
         }
         
         .feedback-container h3 {
             margin: 0 0 15px 0;
-            font-size: 1.2rem;
+            font-size: 18px;
             color: #333;
         }
         
-        .feedback-options {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .feedback-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 15px;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .feedback-btn:hover {
-            background-color: #e9ecef;
-        }
-        
-        .feedback-btn.active {
-            background-color: var(--primary-color, #2C6BED);
-            color: white;
-            border-color: var(--primary-color, #2C6BED);
-        }
-        
-        .feedback-btn.active svg {
-            stroke: white;
-        }
-        
-        .feedback-text-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        #feedback-text {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            min-height: 80px;
-            resize: vertical;
-            font-family: inherit;
-        }
-        
-        #submit-feedback {
-            padding: 10px 15px;
-            background-color: var(--primary-color, #2C6BED);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            align-self: flex-end;
-            transition: all 0.2s;
-        }
-        
-        #submit-feedback:hover {
-            filter: brightness(1.1);
-        }
-        
-        #feedback-msg {
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        
-        .feedback-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .feedback-error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        @media (max-width: 900px) {
-            .page-layout {
-                padding: 0 10px;
-            }
-            
-            .feedback-inner {
-                padding: 15px;
-            }
-        }
-        
-        @media (max-width: 600px) {
-            .feedback-options {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .feedback-btn {
-                width: 100%;
-                justify-content: center;
-                padding: 10px;
-            }
-            
-            #submit-feedback {
-                width: 100%;
-                align-self: center;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .feedback-container {
-                padding: 0 5px;
-            }
-            
-            .feedback-inner {
-                padding: 12px;
-            }
-        }
-
-        /* Pagina container */
-        .page-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            box-sizing: border-box;
-        }
-
-        /* Content wrapper voor centrering */
-        .content-wrapper {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            box-sizing: border-box;
-            align-items: center;
-        }
-        
-        /* De feedback container wordt uitgelijnd met de chat-main */
-        .content-wrapper .feedback-container {
-            max-width: 600px;
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        /* Nieuwe grid layout styling */
-        .page-layout {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            box-sizing: border-box;
-            align-items: center;
-        }
-        
-        .chat-section, .feedback-section {
-            width: 100%;
-        }
-        
-        /* Force alignment tussen chat-main en feedback container */
-        @media (min-width: 901px) {
-            .page-layout {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .chat-section {
-                width: 100%;
-                display: flex;
-                justify-content: center;
-            }
-            
-            .feedback-section {
-                width: 100%;
-                display: flex;
-                justify-content: center;
-                max-width: 600px;
-            }
-        }
-
-        /* Nieuwe schone layout styling */
-        .main-container {
-            width: 900px;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 0;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        /* Chat rij styling */
-        .chat-row {
-            display: flex;
-            justify-content: center;
-            gap: 0;
-        }
-        
-        /* Kolommen voor chat en suggesties */
-        .chat-column {
-            width: 600px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            height: auto;
-            min-width: 600px; /* Voorkom krimpen */
-        }
-
-        .suggestions-column {
-            width: 400px;
-            margin-left: 10px;
-        }
-        
-        /* Feedback container styling - nu direct in chat-column */
-        .feedback-container {
-            width: 100%;  /* Gebruikt volledige breedte van chat-column */
-            margin: 0;  /* Reset margins */
-        }
-        
-        .feedback-inner {
-            width: 100%;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        
-        /* Verwijder oude feedback-row styling */
-        .feedback-row {
-            display: none;  /* Verberg de oude feedback row */
-        }
-        
-        /* Media queries voor responsiveness */
-        @media (max-width: 900px) {
-            .chat-row {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .chat-column, 
-            .suggestions-column {
-                width: 100%;
-                max-width: 600px;
-            }
-            
-            .feedback-row {
-                padding-left: 0;
-                justify-content: center;
-            }
-            
-            .feedback-container {
-                width: 100%;
-                max-width: 600px;
-            }
-        }
-
-        /* Feedback formulier styling */
-        .feedback-input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 14px;
-            margin-bottom: 10px;
-            background: white;
-            transition: border-color 0.2s;
-        }
-
-        .feedback-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        textarea.feedback-input {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .feedback-actions {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 15px;
-        }
-
-        .feedback-message {
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .feedback-error {
-            background-color: #fff3f3;
-            color: #dc3545;
-        }
-
-        .feedback-success {
-            background-color: #f0fff4;
-            color: #28a745;
-        }
-
-        /* Rating container en buttons styling */
         .rating-container {
             display: flex;
             justify-content: center;
@@ -1242,8 +474,293 @@
             transform: translateX(-50%);
             width: 5px;
             height: 5px;
-            background-color: var(--primary-color);
+            background-color: var(--primary-color, #2C6BED);
             border-radius: 50%;
+        }
+        
+        .feedback-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 10px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .feedback-input:focus {
+            outline: none;
+            border-color: var(--primary-color, #2C6BED);
+        }
+
+        textarea.feedback-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        #submit-feedback {
+            padding: 10px 15px;
+            background-color: var(--primary-color, #2C6BED);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            display: block;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        #submit-feedback:hover {
+            background-color: #215bd7;
+        }
+
+        /* Error container */
+        #error-container {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none; /* Initially hidden */
+        }
+
+        /* Mobile optimizations - verbeter voornamelijk deze sectie */
+        @media (max-width: 900px) {
+            body {
+                padding: 8px;
+            }
+
+            .chat-with-suggestions {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .chat-column {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .suggestions-column {
+                width: 100%;
+                flex-shrink: 1;
+            }
+
+            .suggestions-panel {
+                width: 100%;
+                min-width: 100%;
+                max-width: 100%;
+                order: -1;
+                max-height: none;
+                margin-bottom: 12px;
+                padding: 12px;
+                position: static;
+            }
+
+            .chat-main {
+                flex: 1;
+                height: auto !important;
+                min-height: 70vh !important;
+            }
+
+            .message {
+                max-width: 85%;
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+
+            .bot-logo img {
+                height: 60px;
+            }
+
+            .chat-messages {
+                padding: 12px;
+            }
+
+            .chat-header {
+                padding: 12px 16px;
+            }
+
+            .chat-input {
+                padding: 10px 15px;
+            }
+
+            #message-input {
+                padding: 10px 12px;
+                font-size: 16px; /* Voorkomt inzoomen op iOS */
+                height: 42px;
+                min-height: 42px;
+            }
+
+            #send-btn {
+                width: 42px;
+                height: 42px;
+                min-width: 42px;
+                min-height: 42px;
+            }
+            
+            .reset-button {
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+            
+            .feedback-inner {
+                padding: 15px;
+            }
+        }
+        
+        /* Extra aanpassingen voor kleinere mobiele schermen */
+        @media (max-width: 480px) {
+            body {
+                padding: 6px;
+            }
+            
+            .demo-banner {
+                padding: 10px;
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+            
+            .chat-with-suggestions {
+                gap: 12px;
+            }
+            
+            .chat-main {
+                border-radius: 12px;
+            }
+            
+            .chat-header {
+                padding: 10px 14px;
+                border-radius: 12px 12px 0 0;
+            }
+            
+            .chat-input {
+                padding: 8px 12px;
+                border-radius: 0 0 12px 12px;
+            }
+            
+            #message-input {
+                padding: 8px 10px;
+            }
+            
+            .feedback-inner {
+                padding: 12px;
+                border-radius: 12px;
+            }
+            
+            .rating-container {
+                gap: 10px;
+            }
+            
+            .rating-btn {
+                font-size: 22px;
+            }
+            
+            .feedback-container h3 {
+                font-size: 16px;
+            }
+            
+            .message {
+                padding: 8px 12px;
+                margin: 3px 0;
+                max-width: 90%;
+            }
+            
+            .suggestions-panel {
+                border-radius: 12px;
+                padding: 10px;
+            }
+            
+            .suggestions-panel h3 {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+            
+            .suggestion-button {
+                padding: 10px;
+                margin-bottom: 8px;
+                font-size: 13px;
+            }
+            
+            .bot-logo {
+                margin-bottom: 15px;
+            }
+            
+            .bot-logo img {
+                height: 50px;
+            }
+        }
+
+        /* Extra fix voor kleine schermen en landschap oriëntatie */
+        @media (max-height: 500px) {
+            body {
+                padding: 5px;
+            }
+            
+            .bot-logo {
+                margin-bottom: 8px;
+            }
+            
+            #bot-logo-img {
+                max-height: 40px;
+            }
+            
+            .chat-main {
+                min-height: 300px !important;
+            }
+            
+            .welcome-image-container img {
+                max-height: 100px;
+            }
+            
+            .demo-banner {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+            
+            .chat-with-suggestions {
+                gap: 8px;
+            }
+        }
+
+        /* Dark mode ondersteuning */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a1a1a;
+            }
+
+            .chat-main, .suggestions-panel, .feedback-inner {
+                background: #2d2d2d;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            }
+
+            .message.bot {
+                background: #3a3a3a;
+                color: #ffffff;
+            }
+
+            #message-input, .suggestion-button, .feedback-input {
+                background: #333;
+                color: #fff;
+                border-color: #444;
+            }
+
+            .suggestion-button:hover {
+                background: #444;
+            }
+
+            .typing-indicator {
+                background: #333;
+            }
+            
+            .bot-name, .feedback-container h3 {
+                color: #ffffff;
+            }
         }
 
         /* Loading indicator */
@@ -1281,6 +798,22 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Fix dark mode voor loading overlay */
+        @media (prefers-color-scheme: dark) {
+            .loading-overlay {
+                background-color: #1a1a1a;
+            }
+            
+            .loading-spinner {
+                border: 6px solid #333;
+                border-top: 6px solid var(--primary-color, #2C6BED);
+            }
+            
+            .loading-text {
+                color: #fff;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1305,9 +838,9 @@
 
     <!-- Nieuwe, schone layout structuur -->
     <div class="main-container">
-        <!-- Rij voor chat en suggesties -->
-        <div class="chat-row">
-            <!-- Linker kolom: chat interface en feedback -->
+        <!-- Container voor chat en suggesties naast elkaar -->
+        <div class="chat-with-suggestions">
+            <!-- Chat container -->
             <div class="chat-column">
                 <div class="chat-main" id="chat-main">
                     <div class="chat-header">
@@ -1350,7 +883,7 @@
                     </div>
                 </div>
                 
-                <!-- Feedback panel direct in chat-column -->
+                <!-- Feedback panel -->
                 <div class="feedback-container" id="feedback-container">
                     <div class="feedback-inner">
                         <h3>Hoe was je ervaring?</h3>
@@ -1371,7 +904,7 @@
                 </div>
             </div>
             
-            <!-- Rechter kolom: suggesties -->
+            <!-- Suggesties panel -->
             <div class="suggestions-column">
                 <div class="suggestions-panel" id="suggestions-panel">
                     <h3>Veelgestelde vragen</h3>
@@ -1786,7 +1319,7 @@
                 }
             } else {
                 // Voor gebruikersberichten, scroll naar beneden
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         }
         
@@ -2008,9 +1541,9 @@
                             // Voeg nieuwe berichten toe aan de UI
                             for (const msg of newBotMessages) {
                                 const messageText = msg.payload?.text || 'Geen tekst beschikbaar';
-                                addMessageToUI(messageText, 'bot');
-                            }
-                            
+                            addMessageToUI(messageText, 'bot');
+                    }
+                    
                             // Stop polling na laatste bericht
                             clearInterval(pollingInterval);
                             isPolling = false;
@@ -2028,9 +1561,9 @@
             // Stop polling en verberg indicator na 30 seconden als er geen antwoord is
             setTimeout(() => {
                 if (isPolling) {
-                    clearInterval(pollingInterval);
-                    isPolling = false;
-                    hideTypingIndicator();
+                clearInterval(pollingInterval);
+                isPolling = false;
+                hideTypingIndicator();
                     addMessageToUI('Sorry, ik kon geen antwoord genereren. Probeer het opnieuw.', 'bot');
                 }
             }, 30000);
@@ -2317,12 +1850,12 @@
                     },
                     body: JSON.stringify({
                         timestamp: new Date().toISOString(),
-                        botId,
+                    botId,
                         name: name || 'Anoniem',
                         rating: selectedRating,
                         comment: feedbackText.value.trim(),
-                        userId,
-                        conversationId,
+                    userId,
+                    conversationId,
                         chatHistory: JSON.stringify(chatHistory)
                     })
                 });

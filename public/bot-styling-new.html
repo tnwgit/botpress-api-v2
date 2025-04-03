@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assistent Styling Beheer</title>
+    <title>Assistent Styling</title>
     <script src="js/auth-helpers.js"></script>
     <script>
         // Controleer authenticatie bij laden van de pagina
@@ -35,6 +35,12 @@
 
                 // Als alles OK is, toon de pagina
                 document.body.style.visibility = 'visible';
+                
+                // Zet de juiste link naar de assistent profiel pagina
+                const backLink = document.querySelector('.back-link');
+                if (backLink) {
+                    backLink.href = `bot-profile.html?id=${botId}`;
+                }
             } catch (error) {
                 console.error('Authenticatie check mislukt:', error);
                 window.location.href = '/login.html';
@@ -409,14 +415,14 @@
 </head>
 <body>
     <div class="container">
-        <a href="/index.html" class="back-link">
+        <a href="#" class="back-link" id="back-to-profile">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
-            Terug naar dashboard
+            Terug naar assistent
         </a>
 
-        <h1>Assistent Styling Beheer</h1>
+        <h1>Assistent Styling</h1>
         
         <div id="notification" class="notification"></div>
         
@@ -1617,6 +1623,15 @@
         const storedBotId = localStorage.getItem('selectedBotId');
         if (storedBotId) {
             log(`Opgeslagen botId gevonden in localStorage: ${storedBotId}`);
+        }
+        
+        // Configureer de terug-link naar assistent profiel
+        const urlParams = new URLSearchParams(window.location.search);
+        const botId = urlParams.get('botId');
+        const backLink = document.getElementById('back-to-profile');
+        if (backLink && botId) {
+            backLink.href = `bot-profile.html?id=${botId}`;
+            log(`Terug-link ingesteld naar bot-profile.html?id=${botId}`);
         }
         
         try {

@@ -1272,40 +1272,40 @@
                 
                 if (!webhookId) {
                     logToConsole('Geen webhook ID beschikbaar', 'error', consoleOutput);
-                    return false;
-                }
-                
+                return false;
+            }
+            
                 // Creëer een nieuwe client
                 client = new BotpressChatClient({
                     webhookId: webhookId
                 });
                 
                 try {
-                    // Test de verbinding
+                // Test de verbinding
                     await client.checkConnection();
                     logToConsole('Verbinding met Botpress API succesvol', 'success', consoleOutput);
                 } catch (connectionError) {
                     logToConsole(`Verbindingsfout: ${connectionError.message}`, 'error', consoleOutput);
                     console.error('Verbindingsfout:', connectionError);
                     addMessage('Er is een fout opgetreden bij het verbinden met de chat service. Probeer het later opnieuw.', false, chatMessages);
-                    return false;
-                }
-                
-                try {
+                return false;
+        }
+            
+            try {
                     // Maak een gebruiker aan
-                    const userResult = await client.createUser({
-                        name: `User-${Date.now()}`,
-                        tags: { source: 'web-client' }
-                    });
-                    
-                    userId = userResult.user.id;
-                    userKey = userResult.key;
+                const userResult = await client.createUser({
+                    name: `User-${Date.now()}`,
+                    tags: { source: 'web-client' }
+                });
+                
+                userId = userResult.user.id;
+                userKey = userResult.key;
                     
                     // Sla deze op in localStorage voor later gebruik
                     localStorage.setItem('userId', userId);
                     localStorage.setItem('userKey', userKey);
-                    
-                    logToConsole(`Gebruiker aangemaakt met ID: ${userId}`, 'success', consoleOutput);
+                
+                logToConsole(`Gebruiker aangemaakt met ID: ${userId}`, 'success', consoleOutput);
                 } catch (userError) {
                     logToConsole(`Fout bij aanmaken gebruiker: ${userError.message}`, 'error', consoleOutput);
                     console.error('Fout bij aanmaken gebruiker:', userError);
@@ -1315,16 +1315,16 @@
                 
                 try {
                     // Maak een conversatie aan
-                    const conversation = await client.createConversation({
-                        userId,
-                        userKey
-                    });
-                    
-                    conversationId = conversation.id;
+                const conversation = await client.createConversation({
+                    userId,
+                    userKey
+                });
+                
+                conversationId = conversation.id;
                     // Sla deze op in localStorage voor later gebruik
                     localStorage.setItem('conversationId', conversationId);
                     
-                    logToConsole(`Conversatie aangemaakt met ID: ${conversationId}`, 'success', consoleOutput);
+                logToConsole(`Conversatie aangemaakt met ID: ${conversationId}`, 'success', consoleOutput);
                 } catch (convError) {
                     logToConsole(`Fout bij aanmaken conversatie: ${convError.message}`, 'error', consoleOutput);
                     console.error('Fout bij aanmaken conversatie:', convError);

@@ -141,6 +141,54 @@
     </div>
 
     <script>
+        // Login functie
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const redirectUrl = document.getElementById('redirectUrl').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Sla de token op in localStorage
+                    localStorage.setItem('auth-token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    // Redirect naar de juiste pagina
+                    if (redirectUrl) {
+                        window.location.href = redirectUrl;
+                    } else {
+                        window.location.href = '/';
+                    }
+                } else {
+                    // Toon foutmelding
+                    const messageContainer = document.getElementById('message-container');
+                    if (messageContainer) {
+                        messageContainer.innerHTML = `<div class="alert alert-danger">${data.message || 'Ongeldige inloggegevens'}</div>`;
+                        messageContainer.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                const messageContainer = document.getElementById('message-container');
+                if (messageContainer) {
+                    messageContainer.innerHTML = '<div class="alert alert-danger">Er is een fout opgetreden bij het inloggen. Probeer het opnieuw.</div>';
+                    messageContainer.style.display = 'block';
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Verberg en toon wachtwoord functionaliteit
             const pwToggle = document.getElementById('password-toggle');
@@ -226,93 +274,6 @@
                 });
             }
         });
-
-        async function handleLogin(event) {
-            event.preventDefault();
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const redirectUrl = document.getElementById('redirectUrl').value;
-            
-            // Toon loading indicatie
-            const button = document.querySelector('button[type="submit"]');
-            const originalText = button.innerText;
-            button.innerText = 'Bezig met inloggen...';
-            button.disabled = true;
-            
-            try {
-                console.log('Login poging starten:', { username, hasPassword: !!password, redirectUrl });
-                
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username, password }),
-                    credentials: 'include' // Belangrijk voor het opslaan van cookies
-                });
-                
-                console.log('Login response ontvangen, status:', response.status);
-                
-                // Controleer of de request succesvol was
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Inloggen mislukt');
-                }
-                
-                const data = await response.json();
-                console.log('Login succesvol:', data);
-                
-                // Sla de auth token op in localStorage
-                if (data.token) {
-                    localStorage.setItem('auth-token', data.token);
-                    
-                    // Zet ook als cookie voor cross-domain authenticatie
-                    document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
-                }
-                
-                // Sla gebruikersgegevens op
-                if (data.user) {
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                }
-                
-                // Toon succes melding
-                const messageContainer = document.getElementById('message-container');
-                if (messageContainer) {
-                    messageContainer.innerHTML = '<div class="alert alert-success">U bent succesvol ingelogd! U wordt doorgestuurd...</div>';
-                    messageContainer.style.display = 'block';
-                }
-                
-                // Forceer een kleine vertraging om gebruiker feedback te geven
-                setTimeout(() => {
-                    console.log('Doorverwijzen na login, redirect URL:', redirectUrl || '/');
-                    
-                    // Voeg auth_token toe aan URL als er een redirect is, om ervoor te zorgen dat 
-                    // de ontvangende pagina meteen de juiste authenticatie heeft
-                    if (redirectUrl) {
-                        // Check of de URL al parameters heeft
-                        const separator = redirectUrl.includes('?') ? '&' : '?';
-                        window.location.href = `${redirectUrl}${separator}auth_token=${data.token}`;
-                    } else {
-                        window.location.href = '/?auth_token=' + data.token;
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Login error:', error);
-                
-                // Toon foutmelding
-                const messageContainer = document.getElementById('message-container');
-                if (messageContainer) {
-                    messageContainer.innerHTML = `<div class="alert alert-danger">${error.message || 'Inloggen mislukt. Controleer uw gebruikersnaam en wachtwoord.'}</div>`;
-                    messageContainer.style.display = 'block';
-                }
-                
-                // Reset button
-                button.innerText = originalText;
-                button.disabled = false;
-            }
-        }
     </script>
 </body>
 </html>

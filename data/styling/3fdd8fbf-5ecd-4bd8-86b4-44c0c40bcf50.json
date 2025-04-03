@@ -19,12 +19,13 @@
     "placeholderText": "Typ je bericht..."
   },
   "dimensions": {
-    "chatWidth": 600,
-    "chatHeight": 600,
+    "chatWidth": 450,
+    "chatHeight": 450,
     "borderRadius": 10,
     "showSuggestionsPanel": true
   },
   "suggestions": [
-    "test"
+    "Waar zit de water vulopening?",
+    "Waar zit de vuilwater afvoer ?"
   ]
 }

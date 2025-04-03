@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistent Profiel</title>
+    <script src="js/auth-helpers.js"></script>
+    <script>
+        // Controleer authenticatie bij laden van de pagina
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const authenticated = await isAuthenticated();
+                if (!authenticated) {
+                    console.log('Niet ingelogd, doorsturen naar login pagina');
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    return;
+                }
+
+                // Controleer of er een botId is
+                const urlParams = new URLSearchParams(window.location.search);
+                const botId = urlParams.get('botId');
+                if (!botId) {
+                    console.log('Geen botId gevonden, terugsturen naar dashboard');
+                    window.location.href = '/';
+                    return;
+                }
+
+                // Controleer of de gebruiker is ingelogd
+                const user = getCurrentUser();
+                if (!user) {
+                    console.log('Geen gebruiker gevonden, doorsturen naar login');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                // Als alles OK is, toon de pagina
+                document.body.style.visibility = 'visible';
+                
+                // Laad de bot gegevens
+                loadBotData();
+            } catch (error) {
+                console.error('Authenticatie check mislukt:', error);
+                window.location.href = '/login.html';
+            }
+        });
+
+        // Error weergave functie
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('bot-profile').style.display = 'none';
+        }
+
+        // Bot data laden
+        async function loadBotData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const botId = urlParams.get('botId');
+            
+            if (!botId) {
+                showError('Geen bot ID opgegeven');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/bots/${botId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const bot = await response.json();
+                
+                // Update de UI met de bot gegevens
+                document.getElementById('bot-name').textContent = bot.name;
+                document.getElementById('webhook-url').textContent = bot.webhook_id;
+                
+                // Update de test pagina link
+                const testPageLink = document.getElementById('test-page-link');
+                testPageLink.href = `/chat-klant.html?botId=${botId}`;
+                
+                // Update de feedback dashboard link
+                const feedbackDashboardLink = document.getElementById('feedback-dashboard-link');
+                feedbackDashboardLink.href = `/feedback-dashboard.html?botId=${botId}`;
+                
+                // Update de download feedback link
+                const downloadFeedbackLink = document.getElementById('download-feedback-link');
+                downloadFeedbackLink.href = `/api/feedback-proxy/download?botId=${botId}`;
+                
+                // Haal feedback statistieken op met de juiste headers
+                try {
+                    const feedbackResponse = await fetch(`/api/feedback-proxy?botId=${botId}`, {
+                        headers: addAuthorizationHeader()
+                    });
+                    if (feedbackResponse.ok) {
+                        const feedbackData = await feedbackResponse.json();
+                        
+                        if (feedbackData && feedbackData.length > 0) {
+                            // Bereken gemiddelde score
+                            const totalScore = feedbackData.reduce((sum, item) => sum + (parseInt(item.rating) || 0), 0);
+                            const avgScore = (totalScore / feedbackData.length).toFixed(1);
+                            document.getElementById('feedback-score').textContent = avgScore;
+                            
+                            // Update aantal feedback
+                            document.getElementById('feedback-count').textContent = feedbackData.length;
+                            
+                            // Update laatste feedback datum
+                            const lastFeedback = feedbackData[0];
+                            if (lastFeedback.timestamp) {
+                                const date = new Date(lastFeedback.timestamp);
+                                document.getElementById('last-feedback').textContent = date.toLocaleDateString('nl-NL', {
+                                    day: 'numeric',
+                                    month: 'numeric',
+                                    year: 'numeric'
+                                });
+                            }
+                        }
+                    }
+                } catch (feedbackError) {
+                    console.error('Fout bij ophalen feedback statistieken:', feedbackError);
+                }
+                
+                // Voeg event listener toe voor de kopieer knop
+                document.getElementById('copy-webhook').addEventListener('click', () => {
+                    navigator.clipboard.writeText(bot.webhook_id)
+                        .then(() => {
+                            const button = document.getElementById('copy-webhook');
+                            button.innerHTML = '<i class="fas fa-check"></i>';
+                            setTimeout(() => {
+                                button.innerHTML = '<i class="fas fa-copy"></i>';
+                            }, 2000);
+                        })
+                        .catch(err => console.error('Fout bij kopiëren:', err));
+                });
+                
+            } catch (error) {
+                console.error('Fout bij ophalen bot gegevens:', error);
+                document.getElementById('bot-name').textContent = 'Fout bij ophalen assistent informatie';
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Verberg de pagina totdat authenticatie is gecontroleerd */
+        body {
+            visibility: hidden;
+        }
+        :root {
+            --primary-color: #4a6cf7;
+            --primary-light: #eef2ff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            color: var(--primary-color);
+            font-size: 2em;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .back-button i {
+            margin-right: 8px;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card-title {
+            color: var(--primary-color);
+            font-size: 1.5em;
+            margin: 0 0 20px 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .info-item {
+            background: var(--light-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .info-item label {
+            display: block;
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-item .content {
+            font-size: 1.1rem;
+            color: var(--dark-color);
+            word-break: break-all;
+        }
+        
+        .info-item .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            min-width: 160px;
+        }
+
+        .button i {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .button-primary {
+            background-color: #4a6cf7;
+            color: white;
+        }
+
+        .button-primary:hover {
+            background-color: #3a5bd9;
+            transform: translateY(-1px);
+        }
+
+        .button-secondary {
+            background-color: #f8f9fa;
+            color: #343a40;
+            border: 1px solid #dee2e6;
+        }
+
+        .button-secondary:hover {
+            background-color: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        .button-download {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .button-download:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .stat-card h3 {
+            color: var(--secondary-color);
+            font-size: 1rem;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 10px 0;
+            line-height: 1;
+        }
+        
+        .stat-description {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        
+        .copy-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background-color: var(--light-color);
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            color: var(--secondary-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+        
+        .copy-button:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .page-title {
+                font-size: 1.75em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="page-title">Assistent Profiel</h1>
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i> Terug naar dashboard
+            </a>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">Assistent Informatie</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Naam</label>
+                    <div class="content" id="bot-name"></div>
+                </div>
+                <div class="info-item">
+                    <label>Webhook ID</label>
+                    <div class="content">
+                        <span id="webhook-url"></span>
+                        <button id="copy-webhook" class="copy-button" title="Kopieer webhook ID">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <label>Test Omgeving</label>
+                    <div class="content">
+                        <a id="test-page-link" href="#" class="button primary" target="_blank">
+                            <i class="fas fa-external-link-alt"></i> Open test pagina
+                        </a>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <label>Feedback</label>
+                    <div class="content">
+                        <div class="button-group">
+                            <a id="feedback-dashboard-link" href="#" class="button button-primary" target="_blank">
+                                <i class="fas fa-comments"></i>
+                                Bekijk feedback
+                            </a>
+                            <a id="download-feedback-link" href="#" class="button button-download" title="Download feedback als CSV">
+                                <i class="fas fa-download"></i>
+                                Download CSV
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Feedback Score</h3>
+                <div class="stat-value" id="feedback-score">-</div>
+                <p class="stat-description">Gemiddelde beoordeling</p>
+            </div>
+            <div class="stat-card">
+                <h3>Aantal Feedback</h3>
+                <div class="stat-value" id="feedback-count">-</div>
+                <p class="stat-description">Totaal aantal beoordelingen</p>
+            </div>
+            <div class="stat-card">
+                <h3>Laatste Feedback</h3>
+                <div class="stat-value" id="last-feedback">-</div>
+                <p class="stat-description">Datum van laatste beoordeling</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function loadBotData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const botId = urlParams.get('botId');
+        
+        if (!botId) {
+            showError('Geen bot ID opgegeven');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/bots/${botId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const bot = await response.json();
+            
+            // Update de UI met de bot gegevens
+            document.getElementById('bot-name').textContent = bot.name;
+            document.getElementById('webhook-url').textContent = bot.webhook_id;
+            
+            // Update de test pagina link
+            const testPageLink = document.getElementById('test-page-link');
+            testPageLink.href = `/chat-klant.html?botId=${botId}`;
+            
+            // Update de feedback dashboard link
+            const feedbackDashboardLink = document.getElementById('feedback-dashboard-link');
+            feedbackDashboardLink.href = `/feedback-dashboard.html?botId=${botId}`;
+            
+            // Update de download feedback link
+            const downloadFeedbackLink = document.getElementById('download-feedback-link');
+            downloadFeedbackLink.href = `/api/feedback-proxy/download?botId=${botId}`;
+            
+            // Haal feedback statistieken op met de juiste headers
+            try {
+                const feedbackResponse = await fetch(`/api/feedback-proxy?botId=${botId}`, {
+                    headers: addAuthorizationHeader()
+                });
+                if (feedbackResponse.ok) {
+                    const feedbackData = await feedbackResponse.json();
+                    
+                    if (feedbackData && feedbackData.length > 0) {
+                        // Bereken gemiddelde score
+                        const totalScore = feedbackData.reduce((sum, item) => sum + (parseInt(item.rating) || 0), 0);
+                        const avgScore = (totalScore / feedbackData.length).toFixed(1);
+                        document.getElementById('feedback-score').textContent = avgScore;
+                        
+                        // Update aantal feedback
+                        document.getElementById('feedback-count').textContent = feedbackData.length;
+                        
+                        // Update laatste feedback datum
+                        const lastFeedback = feedbackData[0];
+                        if (lastFeedback.timestamp) {
+                            const date = new Date(lastFeedback.timestamp);
+                            document.getElementById('last-feedback').textContent = date.toLocaleDateString('nl-NL', {
+                                day: 'numeric',
+                                month: 'numeric',
+                                year: 'numeric'
+                            });
+                        }
+                    }
+                }
+            } catch (feedbackError) {
+                console.error('Fout bij ophalen feedback statistieken:', feedbackError);
+            }
+            
+            // Voeg event listener toe voor de kopieer knop
+            document.getElementById('copy-webhook').addEventListener('click', () => {
+                navigator.clipboard.writeText(bot.webhook_id)
+                    .then(() => {
+                        const button = document.getElementById('copy-webhook');
+                        button.innerHTML = '<i class="fas fa-check"></i>';
+                        setTimeout(() => {
+                            button.innerHTML = '<i class="fas fa-copy"></i>';
+                        }, 2000);
+                    })
+                    .catch(err => console.error('Fout bij kopiëren:', err));
+            });
+            
+        } catch (error) {
+            console.error('Fout bij ophalen bot gegevens:', error);
+            document.getElementById('bot-name').textContent = 'Fout bij ophalen assistent informatie';
+        }
+    }
+    </script>
+</body>
+</html> 

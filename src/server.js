@@ -1,3 +1,6 @@
+// Laad environment variabelen
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -27,9 +30,65 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(cookieParser());
 
+// Voeg expliciete route toe voor CSS files met correct MIME type
+app.get('/css/:file', (req, res) => {
+    const cssFile = path.join(__dirname, '../public/css', req.params.file);
+    res.type('text/css');
+    res.sendFile(cssFile);
+});
+
+// Bescherm alle HTML paginas behalve login.html
+app.use((req, res, next) => {
+    // Skip deze middleware voor de login pagina en assets
+    if (req.path === '/login.html' || 
+        req.path.startsWith('/css/') || 
+        req.path.startsWith('/js/') || 
+        req.path.startsWith('/api/') ||
+        !req.path.endsWith('.html')) {
+        return next();
+    }
+
+    // Check voor geldige sessie
+    if (!req.session || !req.session.gebruiker) {
+        console.log(`[Auth] Toegang geweigerd tot ${req.path} - Geen geldige sessie`);
+        // Behoud de query parameters in de redirect
+        const redirectUrl = req.url.includes('?') ? req.url : req.path;
+        return res.redirect('/login.html?redirect=' + encodeURIComponent(redirectUrl));
+    }
+
+    // Check voor JWT token in de Authorization header als extra validatie
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const token = authHeader.substring(7);
+            const decodedData = JSON.parse(Buffer.from(token, 'base64').toString());
+            
+            // Check of de token niet verlopen is
+            if (!decodedData || !decodedData.exp || decodedData.exp <= Date.now()) {
+                console.log('[Auth] Token is verlopen of ongeldig');
+                return res.redirect('/login.html?redirect=' + encodeURIComponent(req.url));
+            }
+        } catch (e) {
+            console.error('Fout bij verwerken token:', e);
+        }
+    }
+
+    next();
+});
+
 // Helper om te controleren of we in Vercel productie omgeving zitten
 const isVercelProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
 console.log(`Draait in Vercel productie omgeving: ${isVercelProduction}`);
+
+// Definieer de basis URLs voor lokale ontwikkeling en productie
+const LOCAL_BASE_URL = `http://localhost:${PORT}`;
+const PRODUCTION_BASE_URL = process.env.PRODUCTION_URL || 'https://botpress-api-v2.vercel.app';
+
+// Helper functie om de juiste URL te genereren voor de chat-klant pagina
+function getChatClientUrl(botId) {
+    const baseUrl = isVercelProduction ? PRODUCTION_BASE_URL : LOCAL_BASE_URL;
+    return `${baseUrl}/chat-klant.html?botId=${botId}`;
+}
 
 // Sessie configuratie
 app.use(session({
@@ -514,6 +573,149 @@ app.get('/api/bots', async (req, res) => {
     }
 });
 
+// Nieuwe route voor het ophalen van één specifieke bot op basis van ID
+app.get('/api/bots/:id', async (req, res) => {
+    const { id } = req.params;
+    const sessionId = req.session?.id ? req.session.id.substring(0, 7) + '...' : 'none';
+    
+    console.log(`[${new Date().toISOString()}] GET /api/bots/${id} - SessionID: ${sessionId} - Gebruiker: ${req.session?.gebruiker?.username || 'niet ingelogd'}`);
+    
+    try {
+        console.log(`Ophalen bot met ID ${id} van Supabase...`);
+        
+        // Instellen van headers
+        const supaHeaders = {};
+        if (process.env.SUPABASE_API_KEY) {
+            supaHeaders['apikey'] = process.env.SUPABASE_API_KEY;
+            supaHeaders['Authorization'] = `Bearer ${process.env.SUPABASE_API_KEY}`;
+        }
+        
+        let bot = null;
+        
+        // Eerst proberen van Supabase te halen
+        if (process.env.SUPABASE_URL) {
+            console.log(`Ophalen bot van Supabase met URL: ${process.env.SUPABASE_URL}/rest/v1/bots?id=eq.${id}&select=*`);
+            const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/bots?id=eq.${id}&select=*`, {
+                headers: supaHeaders
+            });
+            
+            if (!response.ok) {
+                console.error(`Fout bij ophalen bot ${id} uit Supabase:`, response.status, response.statusText);
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+            } else {
+                const bots = await response.json();
+                console.log(`Bot zoekresultaat uit Supabase:`, bots);
+                
+                if (bots && bots.length > 0) {
+                    bot = bots[0];
+                    console.log(`Bot ${id} gevonden in Supabase:`, bot);
+                } else {
+                    console.log(`Geen bot gevonden met ID ${id} in Supabase`);
+                }
+            }
+        } else {
+            // Fallback naar lokale JSON file
+            console.log('Geen Supabase URL geconfigureerd, gebruikt lokale bots.json');
+            try {
+                const botsData = fs.readFileSync(path.join(__dirname, '../data/bots.json'), 'utf8');
+                const bots = JSON.parse(botsData);
+                bot = bots.find(b => b.id === id);
+                
+                if (bot) {
+                    console.log(`Bot ${id} gevonden in lokaal bestand:`, bot);
+                } else {
+                    console.log(`Geen bot gevonden met ID ${id} in lokaal bestand`);
+                }
+            } catch (fileError) {
+                console.error('Fout bij lezen van lokale bots.json:', fileError);
+            }
+        }
+        
+        if (!bot) {
+            console.log(`Bot met ID ${id} niet gevonden`);
+            return res.status(404).json({ error: `Bot niet gevonden: ${id}` });
+        }
+        
+        // Haal ook de styling op voor de bot
+        try {
+            const styling = await fetchBotStyling(id);
+            if (styling) {
+                bot.styling = styling;
+                console.log(`Styling toegevoegd aan bot ${id}`);
+            }
+        } catch (stylingError) {
+            console.error(`Fout bij ophalen styling voor bot ${id}:`, stylingError);
+            // Fout bij styling ophalen is niet kritiek, dus we gaan door
+        }
+        
+        // Voeg de chat client URLs toe aan de bot data
+        bot.chatClientUrls = {
+            local: getChatClientUrl(id),
+            production: `${PRODUCTION_BASE_URL}/chat-klant.html?botId=${id}`
+        };
+        
+        res.json(bot);
+        
+    } catch (error) {
+        console.error(`Fout bij ophalen bot ${id}:`, error);
+        res.status(500).json({ 
+            error: `Fout bij ophalen bot ${id}`, 
+            message: error.message
+        });
+    }
+});
+
+// Helper-functie voor het ophalen van bot styling
+async function fetchBotStyling(botId) {
+    try {
+        // Probeer eerst uit Supabase te halen
+        if (process.env.SUPABASE_URL) {
+            console.log(`Probeer styling op te halen uit Supabase voor bot ${botId}...`);
+            
+            const supaHeaders = {};
+            if (process.env.SUPABASE_API_KEY) {
+                supaHeaders['apikey'] = process.env.SUPABASE_API_KEY;
+                supaHeaders['Authorization'] = `Bearer ${process.env.SUPABASE_API_KEY}`;
+            }
+            
+            const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/bot_styling?bot_id=eq.${botId}&select=styling`, {
+                headers: supaHeaders
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.length > 0 && data[0].styling) {
+                    console.log(`Styling gevonden in Supabase voor bot ${botId}`);
+                    return data[0].styling;
+                }
+            }
+        }
+        
+        // Controleer of we de styling in memory hebben (voor Vercel)
+        if (isVercelProduction && stylingMemoryStorage.has(botId)) {
+            console.log(`Styling opgehaald uit memory storage voor bot ${botId}`);
+            return stylingMemoryStorage.get(botId);
+        }
+        
+        // Als laatste optie proberen we het uit het bestandssysteem te lezen
+        const stylingPath = path.join(STYLING_DIR, `${botId}.json`);
+        console.log(`Proberen styling te lezen van: ${stylingPath}`);
+        
+        if (fs.existsSync(stylingPath)) {
+            const styling = JSON.parse(fs.readFileSync(stylingPath, 'utf8'));
+            console.log(`Styling succesvol opgehaald uit bestand voor bot ${botId}`);
+            return styling;
+        }
+        
+        console.log(`Geen styling gevonden voor bot ${botId}`);
+        return null;
+    } catch (error) {
+        console.error(`Fout bij ophalen bot styling voor ${botId}:`, error);
+        return null;
+    }
+}
+
 // API endpoint voor het toevoegen van een nieuwe bot
 app.post('/api/bots', checkAuth, async (req, res) => {
     try {
@@ -768,83 +970,119 @@ app.put('/api/bots/:id', checkAuth, async (req, res) => {
     }
 });
 
-// Auth endpoints
-app.post('/api/auth/login', (req, res) => {
-    console.log('Login request ontvangen:', req.body);
+// Login endpoint
+app.post('/api/auth/login', async (req, res) => {
+    const { username, password } = req.body;
     
-    // Accepteer zowel 'password' als 'wachtwoord' parameter voor compatibiliteit
-    const { username, password, wachtwoord } = req.body;
-    const userPassword = password || wachtwoord;
+    // Log de login poging (zonder wachtwoord)
+    console.log(`[Auth] Login poging voor gebruiker: ${username}`);
+    console.log(`[Auth] Environment variabelen: ADMIN_PASSWORD=${process.env.ADMIN_PASSWORD ? 'Aanwezig' : 'Ontbreekt'}, USER_PASSWORD=${process.env.USER_PASSWORD ? 'Aanwezig' : 'Ontbreekt'}`);
     
-    if (!username || !userPassword) {
-        console.log('Gebruikersnaam of wachtwoord ontbreekt:', { username: !!username, wachtwoord: !!userPassword });
-        return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
+    // Controleer of de gebruikersnaam en wachtwoord zijn opgegeven
+    if (!username || !password) {
+        console.log(`[Auth] Login mislukt: Gebruikersnaam of wachtwoord ontbreekt`);
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Gebruikersnaam en wachtwoord zijn verplicht' 
+        });
     }
     
-    console.log('Controleren op gebruiker in database:', username);
-    const gebruiker = gebruikers[username];
-    
-    if (!gebruiker || gebruiker.wachtwoord !== userPassword) {
-        console.log('Ongeldige inloggegevens:', { gebruikerBestaat: !!gebruiker, wachtwoordCorrect: gebruiker ? gebruiker.wachtwoord === userPassword : false });
-        return res.status(401).json({ error: 'Ongeldige inloggegevens' });
-    }
-    
-    console.log('Geldige inloggegevens, sessie opzetten');
-    
-    // Initialiseer de sessie als deze niet bestaat (voor Vercel)
-    req.session = req.session || {};
-    
-    // Sla gebruikersinformatie op in de sessie
-    req.session.gebruiker = gebruiker;
-    
-    // Maak een simpele JWT token aan (technisch niet veilig genoeg voor productie, maar voor demonstratie)
-    const token = Buffer.from(JSON.stringify({
-        username: gebruiker.username || username,
-        naam: gebruiker.naam,
-        rol: gebruiker.rol,
-        exp: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 dagen
-    })).toString('base64');
-    
-    // Forceer een sessie save voor Vercel
-    req.session.save((err) => {
-        if (err) {
-            console.error('Fout bij opslaan sessie:', err);
-            // We gaan toch door, omdat we nu de token gebruiken
+    try {
+        // Definieer de geldige gebruikers met de juiste wachtwoorden
+        const validUsers = [
+            { 
+                username: 'admin', 
+                password: 'Admin123!@#', // Hardcoded voor test doeleinden
+                name: 'Admin Gebruiker', 
+                role: 'admin' 
+            },
+            { 
+                username: 'user', 
+                password: 'User123!@#', // Hardcoded voor test doeleinden
+                name: 'Normale Gebruiker', 
+                role: 'user' 
+            }
+        ];
+        
+        // Debug informatie
+        console.log(`[Auth] Valid users: ${JSON.stringify(validUsers.map(u => ({ username: u.username, password: u.password ? 'Aanwezig' : 'Ontbreekt' })))}`);
+        
+        // Zoek de gebruiker
+        const user = validUsers.find(u => u.username === username);
+        
+        // Debug informatie
+        console.log(`[Auth] Gevonden gebruiker: ${user ? 'Ja' : 'Nee'}`);
+        if (user) {
+            console.log(`[Auth] Wachtwoord controle: ${user.password === password ? 'Correct' : 'Incorrect'}`);
         }
         
-        console.log('Sessie succesvol opgeslagen, cookies instellen');
+        // Controleer of de gebruiker bestaat en het wachtwoord correct is
+        if (!user || user.password !== password) {
+            console.log(`[Auth] Login mislukt: Ongeldige inloggegevens voor gebruiker: ${username}`);
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Ongeldige gebruikersnaam of wachtwoord' 
+            });
+        }
         
-        // Stel een auth token cookie in
-        res.cookie('bp-auth-token', 'admin-auth-token', {
-            secure: isVercelProduction,
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dagen
-            path: '/',
-            sameSite: 'lax'
-        });
+        // Maak een sessie aan
+        req.session.gebruiker = {
+            username: user.username,
+            naam: user.name,
+            rol: user.role
+        };
         
-        console.log('Cookies ingesteld, antwoord terugsturen');
-        console.log(`Gebruiker ${username} succesvol ingelogd, session ID: ${req.sessionID || 'geen-id'}`);
-        res.json({
+        // Maak een JWT token
+        const tokenData = {
+            username: user.username,
+            naam: user.name,
+            rol: user.role,
+            exp: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 dagen geldig
+        };
+        
+        const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
+        
+        // Stuur de token en gebruikersgegevens terug
+        console.log(`[Auth] Login succesvol voor gebruiker: ${username}`);
+        return res.json({
             success: true,
-            token: token, // Stuur de token terug naar de client
-            user: {  // Hernoem naar 'user' voor consistentie met verwachting in frontend
-                username: gebruiker.username || username,
-                naam: gebruiker.naam,
-                rol: gebruiker.rol
+            token,
+            user: {
+                username: user.username,
+                naam: user.name,
+                rol: user.role
             }
         });
-    });
+    } catch (error) {
+        console.error('[Auth] Login error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Er is een fout opgetreden bij het inloggen' 
+        });
+    }
 });
 
 app.post('/api/auth/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Logout fout:', err);
-            return res.status(500).json({ error: 'Er is een fout opgetreden bij het uitloggen' });
-        }
-        res.json({ success: true, message: 'Uitgelogd' });
-    });
+    console.log('Logout request ontvangen');
+    
+    // Verwijder de sessie
+    if (req.session) {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Fout bij vernietigen sessie:', err);
+                return res.status(500).json({ error: 'Kon sessie niet vernietigen' });
+            }
+            console.log('Sessie succesvol vernietigd');
+        });
+    }
+    
+    // Verwijder auth cookies
+    res.clearCookie('botpress-app.sid');
+    res.clearCookie('bp-auth-token');
+    res.clearCookie('auth-token');
+    
+    console.log('Logout succesvol afgerond');
+    res.json({ success: true, message: 'Succesvol uitgelogd' });
 });
 
 app.get('/api/auth/check', (req, res) => {
@@ -852,8 +1090,8 @@ app.get('/api/auth/check', (req, res) => {
     if (req.session && req.session.gebruiker) {
         console.log('Gebruiker gevonden in sessie');
         return res.json({
-            isAuthenticated: true,
-            gebruiker: req.session.gebruiker
+            isAuthenticated: true, 
+            gebruiker: req.session.gebruiker 
         });
     }
     
@@ -1043,6 +1281,250 @@ app.delete('/api/proxy/botpress/conversations/:conversationId', async (req, res)
     console.error('Error proxying Botpress conversation deletion:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Voeg de feedback endpoints toe
+app.post('/api/feedback', async (req, res) => {
+    try {
+        const { botId, userId, conversationId, rating, comment, name } = req.body;
+        
+        const query = `INSERT INTO feedback (bot_id, user_id, conversation_id, rating, comment, name) 
+                      VALUES (?, ?, ?, ?, ?, ?)`;
+        await supabase.from('feedback').insert({ bot_id: botId, user_id: userId, conversation_id: conversationId, rating: rating, comment: comment, name: name || null });
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Fout bij opslaan feedback:', error);
+        res.status(500).json({ error: 'Kon feedback niet opslaan' });
+    }
+});
+
+// Endpoint om feedback op te halen (alleen voor admins)
+app.get('/api/bots/:botId/feedback', checkAuth, async (req, res) => {
+    try {
+        const { botId } = req.params;
+        console.log(`Ophalen feedback voor bot ${botId}...`);
+        
+        // Voeg debug logging toe voor Supabase client
+        console.log('Supabase client status:', !!supabase);
+        console.log('Supabase URL:', process.env.SUPABASE_URL);
+        
+        const { data, error } = await supabase
+            .from('feedback')
+            .select('*')
+            .eq('bot_id', botId)
+            .order('created_at', { ascending: false });
+            
+        if (error) {
+            console.error('Supabase error bij ophalen feedback:', error);
+            return res.status(500).json({ 
+                error: 'Kon feedback niet ophalen',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
+        // Log de opgehaalde data voor debugging
+        console.log(`Opgehaalde feedback data:`, data);
+        
+        // Zorg dat we altijd een array teruggeven
+        const feedbackArray = Array.isArray(data) ? data : [];
+        console.log(`${feedbackArray.length} feedback items opgehaald`);
+        
+        res.json(feedbackArray);
+    } catch (error) {
+        console.error('Onverwachte fout bij ophalen feedback:', error);
+        res.status(500).json({ 
+            error: 'Kon feedback niet ophalen',
+            details: error.message
+        });
+    }
+});
+
+// Endpoint om feedback te downloaden als CSV (alleen voor admins)
+app.get('/api/bots/:botId/feedback/download', checkAuth, async (req, res) => {
+    try {
+        const { botId } = req.params;
+        const query = `SELECT * FROM feedback WHERE bot_id = ? ORDER BY timestamp DESC`;
+        const feedback = await supabase.from('feedback').select().eq('bot_id', botId).order('timestamp', { ascending: false });
+        
+        // Converteer naar CSV
+        const csvHeader = ['Datum', 'Naam', 'Rating', 'Opmerking', 'Conversatie ID'];
+        const csvRows = feedback.map(f => [
+            new Date(f.timestamp).toLocaleString(),
+            f.name || 'Anoniem',
+            f.rating,
+            f.comment || '',
+            f.conversation_id
+        ]);
+        
+        const csv = [csvHeader, ...csvRows].map(row => row.join(',')).join('\n');
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=feedback-${botId}-${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csv);
+    } catch (error) {
+        console.error('Fout bij downloaden feedback:', error);
+        res.status(500).json({ error: 'Kon feedback niet downloaden' });
+    }
+});
+
+// Google Apps Script URL
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwp0G8MJ3jiJ9GSIMYHgCdKA_I2P95dJ3byftZWzvK3WPa54wNxCeVJAwiEsLzft0u1/exec';
+
+// Proxy endpoint voor feedback data
+app.get('/api/feedback-proxy', async (req, res) => {
+    try {
+        const action = req.query.action || 'getFeedback';
+        const botId = req.query.botId;
+        
+        if (!botId) {
+            return res.status(400).json({ 
+                error: 'Geen bot ID opgegeven',
+                message: 'Bot ID is verplicht voor deze actie'
+            });
+        }
+        
+        console.log(`Fetching feedback data from Google Script with action: ${action} for bot: ${botId}`);
+        
+        // Voeg een timestamp toe om caching te voorkomen
+        const url = `${GOOGLE_SCRIPT_URL}?action=${action}&botId=${botId}&t=${Date.now()}`;
+        console.log(`Request URL: ${url}`);
+
+        // Voeg extra fetch opties toe
+        const fetchOptions = {
+            method: 'GET',
+            headers: {
+                'Accept': '*/*',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'Node.js Server'
+            },
+            redirect: 'follow',
+            timeout: 10000 // 10 seconden timeout
+        };
+        
+        console.log('Fetch options:', JSON.stringify(fetchOptions, null, 2));
+        
+        const response = await fetch(url, fetchOptions);
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        // Haal de ruwe tekst op
+        const rawText = await response.text();
+        console.log('Raw response text (first 1000 chars):', rawText.substring(0, 1000));
+
+        // Als de response leeg is of undefined, stuur een lege array
+        if (!rawText || rawText.trim() === '') {
+            console.log('Empty response received, returning empty array');
+            return res.json([]);
+        }
+
+        // Verwijder eventuele HTML tags en ongeldige karakters
+        const cleanText = rawText.replace(/<[^>]*>/g, '').trim();
+        console.log('Cleaned text (first 1000 chars):', cleanText.substring(0, 1000));
+
+        let parsedData;
+        
+        // Probeer eerst als JSON te parsen
+        try {
+            parsedData = JSON.parse(cleanText);
+            console.log('Successfully parsed as JSON:', typeof parsedData, Array.isArray(parsedData));
+            const feedbackArray = Array.isArray(parsedData) ? parsedData : [parsedData];
+            console.log('Returning feedback array with', feedbackArray.length, 'items');
+            return res.json(feedbackArray);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError.message);
+            
+            // Als JSON parsen faalt, probeer als CSV
+            try {
+                const rows = cleanText.split('\n').map(row => row.split('\t')); // Gebruik tab als scheidingsteken
+                console.log('CSV parsing - number of rows:', rows.length);
+                
+                if (rows.length > 1) {
+                    const headers = rows[0];
+                    console.log('CSV headers:', headers);
+                    
+                    const feedbackArray = rows.slice(1).map(row => {
+                        const feedback = {};
+                        headers.forEach((header, index) => {
+                            let value = row[index]?.trim() || '';
+                            // Probeer de chat geschiedenis te parsen als JSON
+                            if (header === 'Chat Geschiedenis' && value) {
+                                try {
+                                    value = JSON.parse(value);
+                                } catch (e) {
+                                    console.error('Fout bij parsen chat geschiedenis:', e);
+                                    value = [];
+                                }
+                            }
+                            // Converteer de header naam naar camelCase voor consistentie
+                            const key = header.toLowerCase()
+                                .replace(/[^a-z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
+                            feedback[key] = value;
+                        });
+                        return feedback;
+                    });
+                    
+                    console.log('Successfully parsed as CSV, returning', feedbackArray.length, 'items');
+                    return res.json(feedbackArray);
+                }
+            } catch (csvError) {
+                console.error('CSV parse error:', csvError.message);
+            }
+        }
+
+        // Als alles faalt, stuur debug informatie terug
+        return res.status(500).json({
+            error: 'Kon data niet verwerken',
+            rawResponse: rawText.substring(0, 1000), // Eerste 1000 karakters
+            cleanedResponse: cleanText.substring(0, 1000), // Eerste 1000 karakters
+            responseStatus: response.status,
+            responseHeaders: Object.fromEntries(response.headers.entries())
+        });
+
+    } catch (error) {
+        console.error('Error in feedback proxy:', error);
+        res.status(500).json({ 
+            error: 'Kon feedback niet ophalen',
+            details: error.message,
+            stack: error.stack
+        });
+    }
+});
+
+// Download endpoint voor feedback CSV
+app.get('/api/feedback-proxy/download', async (req, res) => {
+    try {
+        const botId = req.query.botId;
+        
+        if (!botId) {
+            return res.status(400).json({ 
+                error: 'Geen bot ID opgegeven',
+                message: 'Bot ID is verplicht voor deze actie'
+            });
+        }
+        
+        const url = `${GOOGLE_SCRIPT_URL}?action=downloadCSV&botId=${botId}&t=${Date.now()}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const csvContent = await response.text();
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="feedback_${botId}_${new Date().toISOString().split('T')[0]}.csv"`);
+        res.send(csvContent);
+        
+    } catch (error) {
+        console.error('Error downloading feedback:', error);
+        res.status(500).json({ 
+            error: 'Kon feedback niet downloaden',
+            details: error.message
+        });
+    }
 });
 
 // Start de server

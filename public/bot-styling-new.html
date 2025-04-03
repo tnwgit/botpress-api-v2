@@ -4,8 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assistent Styling Beheer</title>
+    <script src="js/auth-helpers.js"></script>
+    <script>
+        // Controleer authenticatie bij laden van de pagina
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const authenticated = await isAuthenticated();
+                if (!authenticated) {
+                    console.log('Niet ingelogd, doorsturen naar login pagina');
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    return;
+                }
+
+                // Controleer of er een botId is
+                const urlParams = new URLSearchParams(window.location.search);
+                const botId = urlParams.get('botId');
+                if (!botId) {
+                    console.log('Geen botId gevonden, terugsturen naar dashboard');
+                    window.location.href = '/';
+                    return;
+                }
+
+                // Controleer of de gebruiker is ingelogd
+                const user = getCurrentUser();
+                if (!user) {
+                    console.log('Geen gebruiker gevonden, doorsturen naar login');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                // Als alles OK is, toon de pagina
+                document.body.style.visibility = 'visible';
+            } catch (error) {
+                console.error('Authenticatie check mislukt:', error);
+                window.location.href = '/login.html';
+            }
+        });
+    </script>
     <!-- <link rel="stylesheet" href="/css/styles.css"> -->
     <style>
+        /* Verberg de pagina totdat authenticatie is gecontroleerd */
+        body {
+            visibility: hidden;
+        }
         /* Basis stijlen */
         body {
             font-family: Arial, sans-serif;

@@ -12,21 +12,16 @@
     "botBubble": "#f0f0f0",
     "userText": "#ffffff",
     "botText": "#000000",
-    "titleText": "#100f0f",
-    "suggestionsPanelBg": "#ffffff",
-    "suggestionButtonBg": "#f8f9fa",
-    "suggestionTextColor": "#212529",
-    "suggestionBorderColor": "#dee2e6"
+    "titleText": "#100f0f"
   },
   "text": {
     "welcomeMessage": "Welkom! Hoe kan ik je helpen?",
-    "placeholderText": "Typ hier je bericht...",
-    "noResponseText": "Sorry, ik kon je niet verstaan. Kun je het anders formuleren?"
+    "placeholderText": "Typ hier je bericht..."
   },
   "dimensions": {
-    "chatHeight": "600",
-    "chatWidth": "800",
-    "borderRadius": "8",
+    "chatWidth": 500,
+    "chatHeight": 500,
+    "borderRadius": 8,
     "showSuggestionsPanel": true
   },
   "suggestions": [

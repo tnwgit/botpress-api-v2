@@ -53,21 +53,48 @@ function getCurrentUser() {
 
 // Functie om de gebruiker uit te loggen
 async function logout() {
+    console.log('Start uitloggen...');
+    
     // Verwijder lokale opslag
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('user');
+    try {
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('botId');
+        localStorage.removeItem('botName');
+        localStorage.removeItem('currentWebhookId');
+        console.log('Lokale opslag gewist');
+    } catch (error) {
+        console.error('Fout bij wissen lokale opslag:', error);
+    }
     
     // Logout op server
     try {
-        await fetch('/api/auth/logout', {
+        const response = await fetch('/api/auth/logout', {
             method: 'POST',
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
+        
+        if (!response.ok) {
+            throw new Error(`Server logout mislukt: ${response.status} ${response.statusText}`);
+        }
+        
+        console.log('Server logout succesvol');
     } catch (error) {
-        console.error('Logout error:', error);
+        console.error('Server logout error:', error);
+        throw error; // Propageer de error zodat de UI deze kan afhandelen
     }
     
+    // Verwijder alle cookies
+    document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    console.log('Cookies verwijderd');
+    
     // Redirect naar login pagina
+    console.log('Redirecting naar login pagina...');
     window.location.href = '/login.html';
 }
 

@@ -35,9 +35,15 @@
                 // Voeg logout functionaliteit toe
                 const logoutBtn = document.getElementById('logout-btn');
                 if (logoutBtn) {
-                    logoutBtn.addEventListener('click', function(e) {
+                    logoutBtn.addEventListener('click', async function(e) {
                         e.preventDefault();
-                        logout();
+                        try {
+                            await logout();
+                            window.location.href = '/login.html';
+                        } catch (error) {
+                            console.error('Uitloggen mislukt:', error);
+                            alert('Er is een fout opgetreden bij het uitloggen. Probeer het opnieuw.');
+                        }
                     });
                 }
                 
@@ -114,6 +120,13 @@
                                 </svg>
                                 Chat
                             </button>
+                            <a href="/bot-profile.html?botId=${assistant.id}" class="action-button" title="Bekijk profiel">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                Profiel
+                            </a>
                             <a href="#" class="styling-link" onclick="handleAssistantStyling('${assistant.id}', '${assistant.name}'); return false;" title="Pas de styling aan">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -638,7 +651,7 @@
             <h1>Chat Assistent Dashboard</h1>
             <div class="user-controls">
                 <span id="currentUser"></span>
-                <button id="logoutBtn" class="logout-btn">Uitloggen</button>
+                <button id="logout-btn" class="logout-btn">Uitloggen</button>
             </div>
         </div>
         <div class="content">

@@ -598,17 +598,13 @@
                 display: block; /* Blok in plaats van flex kolom */
                 height: auto;
                 width: 100%;
-                min-height: 0;
-                max-height: none;
-                overflow-y: visible;
+                min-height: auto !important;
                 margin-bottom: 30px;
             }
 
             .chat-messages {
-                height: auto;
-                min-height: 0;
-                max-height: none;
-                overflow-y: visible;
+                min-height: 100px !important;
+                padding: 10px;
             }
             
             #message-input {
@@ -625,6 +621,26 @@
             
             .bot-logo img {
                 height: 60px;
+            }
+
+            /* Welkomstafbeelding niet absoluut positioneren op mobiel */
+            .welcome-image-container {
+                position: static;
+                transform: none;
+                padding: 10px 0;
+                margin: 0;
+                height: auto;
+            }
+            
+            .welcome-image-container img {
+                max-height: 120px;
+            }
+            
+            /* Zorg dat het chatpanel op mobiel volledig in beeld is */
+            .chat-main {
+                min-height: auto !important;
+                height: auto !important;
+                max-height: none !important;
             }
         }
         
@@ -770,6 +786,15 @@
             #submit-feedback {
                 width: 100%;
                 box-sizing: border-box;
+            }
+
+            .welcome-image-container {
+                padding: 5px;
+                margin: 5px 0;
+            }
+            
+            .welcome-image-container img {
+                max-height: 100px;
             }
         }
 

@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat Demo voor Klanten</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -28,6 +28,11 @@
             line-height: 1.6;
             background: #f5f5f5;
             overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            -moz-text-size-adjust: 100%;
         }
 
         body {
@@ -35,6 +40,10 @@
             flex-direction: column;
             padding: 12px;
             min-height: 100vh;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            position: relative;
         }
 
         /* Demo banner voor klanten */
@@ -77,6 +86,29 @@
             margin: 0 auto;
             padding: 0;
             flex: 1;
+            box-sizing: border-box;
+        }
+
+        /* Chat column - bevat chat en feedback */
+        .chat-column {
+            flex: 1;
+            max-width: 650px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Suggesties kolom */
+        .suggestions-column {
+            width: 320px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-self: flex-start;
+            position: sticky;
+            top: 0;
         }
 
         /* De container die zowel chat als suggesties bevat */
@@ -87,21 +119,8 @@
             gap: 24px;
             margin: 0 auto;
             max-width: 1200px;
-        }
-
-        /* Chat column - bevat chat en feedback */
-        .chat-column {
-            flex: 1;
-            max-width: 650px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Suggesties kolom */
-        .suggestions-column {
-            width: 320px;
-            flex-shrink: 0;
+            box-sizing: border-box;
+            align-items: flex-start;
         }
 
         /* Main container */
@@ -114,6 +133,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow-x: hidden;
         }
 
         /* Berichtencontainer */
@@ -126,6 +146,9 @@
             position: relative;
             min-height: 200px;
             -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+            box-sizing: border-box;
+            width: 100%;
         }
 
         /* De kern chatbox */
@@ -141,6 +164,7 @@
             position: relative;
             overflow: hidden;
             flex: 1;
+            max-width: 100%;
         }
 
         /* Suggesties paneel */
@@ -161,6 +185,7 @@
             position: sticky;
             top: 16px;
             -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
         }
 
         /* Header van de chatbox */
@@ -220,6 +245,9 @@
             white-space: pre-wrap;
             animation: messageSlide 0.3s ease;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            overflow-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
         }
 
         .message.user {
@@ -310,6 +338,8 @@
             border-radius: 0 0 16px 16px;
             box-sizing: border-box;
             width: 100%;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         #message-input {
@@ -330,6 +360,8 @@
             transition: border-color 0.2s;
             font-family: inherit;
             box-sizing: border-box;
+            width: calc(100% - 55px);
+            max-width: calc(100% - 55px);
         }
         
         #message-input::-webkit-scrollbar {
@@ -413,6 +445,8 @@
 
         .welcome-image-container.hidden {
             display: none;
+            opacity: 0;
+            visibility: hidden;
         }
 
         /* Feedback styling */
@@ -421,6 +455,7 @@
             margin: 20px 0;
             box-sizing: border-box;
             padding: 0;
+            max-width: 100%;
         }
 
         .feedback-inner {
@@ -430,6 +465,8 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             padding: 20px;
             box-sizing: border-box;
+            max-width: 100%;
+            overflow: hidden;
         }
         
         .feedback-container h3 {
@@ -443,6 +480,7 @@
             justify-content: center;
             gap: 15px;
             margin: 15px 0;
+            flex-wrap: wrap;
         }
 
         .rating-btn {
@@ -488,6 +526,7 @@
             margin-bottom: 10px;
             background: white;
             transition: border-color 0.2s;
+            box-sizing: border-box;
         }
 
         .feedback-input:focus {
@@ -530,7 +569,7 @@
             display: none; /* Initially hidden */
         }
 
-        /* Mobile optimizations - verbeter voornamelijk deze sectie */
+        /* Mobile optimizations - simpele aanpak met secties onder elkaar */
         @media (max-width: 900px) {
             body {
                 padding: 8px;
@@ -538,79 +577,54 @@
 
             .chat-with-suggestions {
                 flex-direction: column;
-                gap: 16px;
+                gap: 20px;
             }
 
             .chat-column {
-                max-width: 100%;
+                display: block; /* Blok in plaats van flex kolom */
                 width: 100%;
+                max-width: 100%;
             }
 
             .suggestions-column {
-                width: 100%;
-                flex-shrink: 1;
+                display: none !important;
             }
-
+            
             .suggestions-panel {
-                width: 100%;
-                min-width: 100%;
-                max-width: 100%;
-                order: -1;
-                max-height: none;
-                margin-bottom: 12px;
-                padding: 12px;
-                position: static;
+                display: none !important;
             }
 
             .chat-main {
-                flex: 1;
-                height: auto !important;
-                min-height: 70vh !important;
-            }
-
-            .message {
-                max-width: 85%;
-                font-size: 14px;
-                padding: 10px 14px;
-            }
-
-            .bot-logo img {
-                height: 60px;
+                display: block; /* Blok in plaats van flex kolom */
+                height: auto;
+                width: 100%;
+                min-height: 0;
+                max-height: none;
+                overflow-y: visible;
+                margin-bottom: 30px;
             }
 
             .chat-messages {
-                padding: 12px;
+                height: auto;
+                min-height: 0;
+                max-height: none;
+                overflow-y: visible;
             }
-
-            .chat-header {
-                padding: 12px 16px;
-            }
-
-            .chat-input {
-                padding: 10px 15px;
-            }
-
+            
             #message-input {
-                padding: 10px 12px;
-                font-size: 16px; /* Voorkomt inzoomen op iOS */
-                height: 42px;
-                min-height: 42px;
+                width: calc(100% - 52px);
+                max-width: calc(100% - 52px);
             }
 
-            #send-btn {
-                width: 42px;
-                height: 42px;
-                min-width: 42px;
-                min-height: 42px;
+            .feedback-container {
+                display: block;
+                width: 100%;
+                margin-top: 30px;
+                clear: both;
             }
             
-            .reset-button {
-                padding: 6px 10px;
-                font-size: 13px;
-            }
-            
-            .feedback-inner {
-                padding: 15px;
+            .bot-logo img {
+                height: 60px;
             }
         }
         
@@ -618,113 +632,232 @@
         @media (max-width: 480px) {
             body {
                 padding: 6px;
+                width: 100%;
+                max-width: 100vw;
+                overflow-x: hidden;
+                box-sizing: border-box;
+                margin: 0;
             }
             
             .demo-banner {
                 padding: 10px;
                 font-size: 14px;
                 margin-bottom: 12px;
+                width: 100%;
+                box-sizing: border-box;
             }
             
-            .chat-with-suggestions {
-                gap: 12px;
+            .main-container, 
+            .chat-container, 
+            .chat-with-suggestions,
+            .chat-column,
+            .chat-main,
+            .feedback-container,
+            .feedback-inner {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                overflow-x: hidden !important;
+            }
+            
+            .suggestions-column,
+            .suggestions-panel {
+                display: none !important;
             }
             
             .chat-main {
-                border-radius: 12px;
+                width: 100% !important;
+                min-height: min-content !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible;
+                position: relative;
+                z-index: 1;
             }
-            
+
             .chat-header {
                 padding: 10px 14px;
                 border-radius: 12px 12px 0 0;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                max-width: 100% !important;
+            }
+            
+            .chat-messages {
+                width: 100% !important;
+                box-sizing: border-box !important;
+                max-width: 100% !important;
+                padding: 10px !important;
+                min-height: min-content !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow-y: visible !important;
             }
             
             .chat-input {
                 padding: 8px 12px;
                 border-radius: 0 0 12px 12px;
+                flex-wrap: nowrap;
+                gap: 8px;
+                overflow: hidden;
+                justify-content: space-between;
+                align-items: center;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                max-width: 100% !important;
             }
             
             #message-input {
                 padding: 8px 10px;
+                width: calc(100% - 46px) !important;
+                box-sizing: border-box;
+                flex: 1;
+                max-width: calc(100% - 46px) !important;
+                margin-right: 8px;
+            }
+            
+            #send-btn {
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+                min-height: 38px;
+                flex-shrink: 0;
+                margin-left: 0;
+            }
+            
+            .feedback-container {
+                width: 100%;
+                display: block !important;
+                margin-top: 20px !important;
+                padding: 0;
+                clear: both;
+                position: relative;
+                z-index: 0;
             }
             
             .feedback-inner {
                 padding: 12px;
                 border-radius: 12px;
-            }
-            
-            .rating-container {
-                gap: 10px;
-            }
-            
-            .rating-btn {
-                font-size: 22px;
-            }
-            
-            .feedback-container h3 {
-                font-size: 16px;
+                width: 100%;
+                box-sizing: border-box;
+                max-width: 100vw;
+                overflow: hidden;
             }
             
             .message {
-                padding: 8px 12px;
-                margin: 3px 0;
                 max-width: 90%;
-            }
-            
-            .suggestions-panel {
-                border-radius: 12px;
-                padding: 10px;
-            }
-            
-            .suggestions-panel h3 {
+                padding: 8px 12px;
                 font-size: 14px;
-                margin-bottom: 10px;
+                margin: 3px 0;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                word-break: break-word;
+                hyphens: auto;
             }
             
-            .suggestion-button {
-                padding: 10px;
-                margin-bottom: 8px;
-                font-size: 13px;
+            /* Verbetering voor feedback invoerveld */
+            .feedback-input {
+                max-width: 100%;
+                box-sizing: border-box;
+                width: 100%;
             }
             
-            .bot-logo {
-                margin-bottom: 15px;
-            }
-            
-            .bot-logo img {
-                height: 50px;
+            #submit-feedback {
+                width: 100%;
+                box-sizing: border-box;
             }
         }
 
-        /* Extra fix voor kleine schermen en landschap oriëntatie */
-        @media (max-height: 500px) {
+        /* Extra fix voor zeer kleine schermen */
+        @media (max-width: 320px) {
             body {
-                padding: 5px;
+                padding: 4px;
+            }
+            
+            .chat-main, .feedback-inner, .suggestions-panel {
+                border-radius: 10px !important;
+            }
+            
+            .chat-header {
+                padding: 8px 10px !important;
+                border-radius: 10px 10px 0 0 !important;
+            }
+            
+            .message {
+                max-width: 95%;
+                font-size: 13px;
+                padding: 8px 10px;
+                margin: 2px 0;
+            }
+            
+            .chat-messages {
+                padding: 8px !important;
+            }
+            
+            .chat-input {
+                padding: 6px 8px !important;
+                gap: 6px !important;
+                border-radius: 0 0 10px 10px !important;
+            }
+            
+            #message-input {
+                padding: 7px 8px;
+                height: 38px;
+                min-height: 38px;
+                width: calc(100% - 44px) !important;
+                max-width: calc(100% - 44px) !important;
+                margin-right: 6px;
+                font-size: 14px !important;
+            }
+            
+            #send-btn {
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+                min-height: 38px;
+                padding: 0 !important;
+            }
+            
+            .feedback-inner {
+                padding: 10px;
+            }
+            
+            .feedback-container h3 {
+                font-size: 15px;
+                margin-bottom: 8px;
+            }
+            
+            .rating-btn {
+                font-size: 18px;
+                padding: 3px;
+            }
+            
+            /* Extra stijlen voor betere telefoonweergave */
+            .demo-banner {
+                padding: 8px !important;
+                font-size: 13px !important;
+                margin-bottom: 8px !important;
             }
             
             .bot-logo {
-                margin-bottom: 8px;
+                margin-bottom: 10px !important;
             }
             
-            #bot-logo-img {
-                max-height: 40px;
-            }
-            
-            .chat-main {
-                min-height: 300px !important;
-            }
-            
-            .welcome-image-container img {
-                max-height: 100px;
-            }
-            
-            .demo-banner {
-                padding: 8px;
-                margin-bottom: 8px;
+            .bot-logo img {
+                height: 40px !important;
             }
             
             .chat-with-suggestions {
-                gap: 8px;
+                gap: 8px !important;
+            }
+            
+            .suggestions-panel h3 {
+                font-size: 13px !important;
             }
         }
 
@@ -814,6 +947,37 @@
                 color: #fff;
             }
         }
+
+        /* Extra fix voor kleine schermen en landschap oriëntatie */
+        @media (max-width: 767px) and (orientation: landscape) {
+            .chat-main {
+                min-height: 50vh !important;
+            }
+            
+            .chat-with-suggestions {
+                flex-direction: column;
+            }
+            
+            .suggestions-column {
+                display: none !important;
+            }
+            
+            .suggestions-panel {
+                display: none !important;
+            }
+            
+            .chat-column {
+                width: 100%;
+                order: 1;
+            }
+            
+            .feedback-container {
+                width: 100%;
+                order: 2;
+                margin-top: 16px;
+                display: block !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -837,79 +1001,66 @@
     </div>
 
     <!-- Nieuwe, schone layout structuur -->
-    <div class="main-container">
-        <!-- Container voor chat en suggesties naast elkaar -->
+    <div class="chat-container">
         <div class="chat-with-suggestions">
-            <!-- Chat container -->
             <div class="chat-column">
-                <div class="chat-main" id="chat-main">
-                    <div class="chat-header">
-                        <div class="bot-name" id="botName">Laden...</div>
-                        <div class="header-actions">
-                            <button class="reset-button" id="reset-btn" title="Start een nieuw gesprek">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                                    <path d="M3 3v5h5"/>
-                                </svg>
-                            </button>
-                        </div>
+            <div class="chat-main">
+                <div class="chat-header">
+                        <span class="bot-name" id="bot-name">Chat Bot</span>
+                        <button class="reset-button" onclick="resetChat()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"></path><path d="M3 13a9 9 0 1 0 3-7.7L3 8"></path></svg>
+                            Reset
+                        </button>
+        </div>
+                <div class="chat-messages" id="chat-messages">
+                        <!-- Welkomstafbeelding -->
+                        <div id="welcome-image" class="welcome-image-container">
+                            <img src="https://botpress-api-v2.vercel.app/img/welcome-bot.svg" alt="Welcome Bot" id="welcome-img" />
                     </div>
-                    
-                    <div class="chat-messages" id="chat-messages">
-                        <div class="welcome-image-container" id="welcomeImageContainer">
-                            <!-- Welkomstafbeelding wordt dynamisch ingevoegd -->
-                        </div>
-                        <!-- Berichten worden hier dynamisch toegevoegd -->
                     </div>
-                    
                     <div class="typing-indicator" id="typing-indicator">
                         <div class="dot"></div>
                         <div class="dot"></div>
                         <div class="dot"></div>
                     </div>
-                    
-                    <div class="chat-input">
-                        <textarea 
-                            id="message-input" 
-                            placeholder="Type je bericht..." 
-                            rows="1"
-                        ></textarea>
-                        <button id="send-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Feedback panel -->
-                <div class="feedback-container" id="feedback-container">
-                    <div class="feedback-inner">
-                        <h3>Hoe was je ervaring?</h3>
-                        <div class="rating-container">
-                            <button class="rating-btn" data-rating="1">😞</button>
-                            <button class="rating-btn" data-rating="2">😐</button>
-                            <button class="rating-btn" data-rating="3">😊</button>
-                            <button class="rating-btn" data-rating="4">😃</button>
-                            <button class="rating-btn" data-rating="5">🤩</button>
-                        </div>
-                        <input type="text" id="feedback-name" placeholder="Je naam (optioneel)" class="feedback-input">
-                        <textarea id="feedback-text" placeholder="Vertel ons meer over je ervaring (optioneel)" class="feedback-input"></textarea>
-                        <div class="feedback-actions">
-                            <button id="submit-feedback" class="primary-button">Verstuur feedback</button>
-                        </div>
-                        <p id="feedback-msg" class="feedback-message"></p>
-                    </div>
+                <div class="chat-input">
+                        <textarea id="message-input" placeholder="Typ hier je bericht..." rows="1"></textarea>
+                    <button id="send-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
                 </div>
             </div>
             
-            <!-- Suggesties panel -->
+                <!-- Feedback container -->
+                <div class="feedback-container">
+                    <div class="feedback-inner">
+                        <h3>Hoe was je gesprek met deze assistent?</h3>
+                        <div class="rating-container">
+                            <button class="rating-btn" data-rating="1">😞</button>
+                            <button class="rating-btn" data-rating="2">🙁</button>
+                            <button class="rating-btn" data-rating="3">😐</button>
+                            <button class="rating-btn" data-rating="4">🙂</button>
+                            <button class="rating-btn" data-rating="5">😊</button>
+                        </div>
+                        <input type="text" id="feedback-name" class="feedback-input" placeholder="Je naam (optioneel)">
+                        <textarea id="feedback-text" class="feedback-input" placeholder="Vertel ons wat je vond van deze chat assistent..."></textarea>
+                        <button id="submit-feedback">Verstuur feedback</button>
+                        <p id="feedback-msg"></p>
+            </div>
+        </div>
+        </div>
+        
             <div class="suggestions-column">
-                <div class="suggestions-panel" id="suggestions-panel">
-                    <h3>Veelgestelde vragen</h3>
-                    <!-- Suggesties worden hier dynamisch toegevoegd -->
-                </div>
+                <div class="suggestions-panel">
+                    <h3>Voorgestelde vragen</h3>
+                    <button class="suggestion-button">Wat zijn de openingstijden?</button>
+                    <button class="suggestion-button">Kan ik een reservering maken?</button>
+                    <button class="suggestion-button">Wat zijn de faciliteiten?</button>
+                    <button class="suggestion-button">Hoe kan ik contact opnemen?</button>
+            </div>
             </div>
         </div>
     </div>
@@ -942,7 +1093,7 @@
                         console.log('Bot gegevens gevonden in cache');
                         
                         // Update titel
-                        document.getElementById('botName').textContent = `Chat met ${cachedBotName}`;
+                        document.getElementById('bot-name').textContent = `Chat met ${cachedBotName}`;
                         document.title = `Chat met ${cachedBotName}`;
                         
                         // Laad en pas styling toe
@@ -964,7 +1115,7 @@
                 localStorage.setItem('currentWebhookId', botData.webhook_id);
                 
                 // Update titel
-                document.getElementById('botName').textContent = `Chat met ${botData.name}`;
+                document.getElementById('bot-name').textContent = `Chat met ${botData.name}`;
                 document.title = `Chat met ${botData.name}`;
                 
                 // Laad styling en initialiseer chat
@@ -1016,7 +1167,7 @@
                     
                     // Titel
                     if (styleData.general.title) {
-                        document.getElementById('botName').textContent = styleData.general.title;
+                        document.getElementById('bot-name').textContent = styleData.general.title;
                     }
                     
                     // Logo
@@ -1028,7 +1179,7 @@
                     
                     // Welkomstafbeelding
                     if (styleData.general.welcomeImage) {
-                        const welcomeContainer = document.getElementById('welcomeImageContainer');
+                        const welcomeContainer = document.getElementById('welcome-image');
                         welcomeContainer.innerHTML = '';
                         
                         const img = document.createElement('img');
@@ -1045,7 +1196,7 @@
                     
                     // Text kleuren
                     if (styleData.colors.titleText) {
-                        document.getElementById('botName').style.color = styleData.colors.titleText;
+                        document.getElementById('bot-name').style.color = styleData.colors.titleText;
                     }
                     
                     // CSS variabelen voor kleuren
@@ -1076,8 +1227,8 @@
                 
                 // Suggesties
                 if (styleData.suggestions && Array.isArray(styleData.suggestions)) {
-                    const suggestionsPanel = document.getElementById('suggestions-panel');
-                    suggestionsPanel.innerHTML = '<h3>Veelgestelde vragen</h3>';
+                    const suggestionsPanel = document.querySelector('.suggestions-panel');
+                    suggestionsPanel.innerHTML = '<h3>Voorgestelde vragen</h3>';
                     
                     // Toon suggesties panel op basis van dimensie-instelling
                     const showSuggestionsPanel = styleData.dimensions?.showSuggestionsPanel !== false;
@@ -1101,7 +1252,7 @@
                         }
                     } else {
                     // Verberg suggesties paneel als er geen suggesties property is
-                    document.getElementById('suggestions-panel').style.display = 'none';
+                    document.querySelector('.suggestions-panel').style.display = 'none';
                 }
                 
                 // Afmetingen
@@ -1109,7 +1260,7 @@
                     const chatMain = document.querySelector('.chat-main');
                     const chatMessages = document.querySelector('.chat-messages');
                     const chatWithSuggestions = document.querySelector('.chat-with-suggestions');
-                    const suggestionsPanel = document.getElementById('suggestions-panel');
+                    const suggestionsPanel = document.querySelector('.suggestions-panel');
                     const feedbackInner = document.querySelector('.feedback-inner');
                     const chatColumn = document.querySelector('.chat-column');
                     const typingIndicator = document.querySelector('.typing-indicator');
@@ -1192,7 +1343,7 @@
             // Event listeners voor chat interactie
             const messageInput = document.getElementById('message-input');
             const sendButton = document.getElementById('send-btn');
-            const resetButton = document.getElementById('reset-btn');
+            const resetButton = document.querySelector('.reset-button');
             
             // Auto-resize textarea
             messageInput.addEventListener('input', function() {
@@ -1285,42 +1436,30 @@
         // Voeg bericht toe aan UI
         function addMessageToUI(text, sender) {
             const messagesContainer = document.getElementById('chat-messages');
-            const welcomeImage = document.getElementById('welcomeImageContainer');
+            const welcomeImage = document.getElementById('welcome-image');
             
             // Verberg welkomstafbeelding bij gebruikersberichten
-            if (sender === 'user' && welcomeImage) {
-                welcomeImage.style.display = 'none';
+            if (welcomeImage) {
+                welcomeImage.classList.add('hidden');
             }
             
-            // Maak bericht element
+            // Maak berichtelement
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
+            messageDiv.classList.add('message', sender);
             
-            // Sanitize en render markdown voor bot berichten
+            // Verwerk markdown en sanitize
             if (sender === 'bot') {
-                // Gebruik DOMPurify en marked voor veilige markdown rendering
                 const sanitizedHtml = DOMPurify.sanitize(marked.parse(text));
                 messageDiv.innerHTML = sanitizedHtml;
             } else {
-                // Plain text voor gebruiker berichten
                 messageDiv.textContent = text;
             }
             
-            // Voeg bericht toe
+            // Voeg toe aan container
             messagesContainer.appendChild(messageDiv);
             
-            // Scroll logica
-            if (sender === 'bot') {
-                // Voor bot berichten, scroll zodat zowel de laatste gebruikersvraag als het begin van het antwoord zichtbaar zijn
-                const lastUserMessage = messagesContainer.querySelector('.message.user:last-of-type');
-                if (lastUserMessage) {
-                    const lastUserMessageTop = lastUserMessage.offsetTop;
-                    messagesContainer.scrollTop = Math.max(0, lastUserMessageTop - 60); // 60px ruimte boven de vraag
-                }
-            } else {
-                // Voor gebruikersberichten, scroll naar beneden
+            // Scroll naar het laatste bericht
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
         }
         
         // Initialiseer chat
@@ -1396,7 +1535,7 @@
                 
                 // Wis chat geschiedenis
                 document.getElementById('chat-messages').innerHTML = `
-                    <div class="welcome-image-container" id="welcomeImageContainer"></div>
+                    <div class="welcome-image-container" id="welcome-image"></div>
                 `;
                 
                 // Creëer client voor deze aanvraag
@@ -1570,7 +1709,6 @@
         }
 
         // Voeg BotpressChat client class toe bovenaan script
-
         class BotpressChatClient {
             constructor(config) {
                 this.webhookId = config.webhookId;

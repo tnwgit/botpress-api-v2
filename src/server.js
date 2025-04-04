@@ -1541,6 +1541,17 @@ if (!fs.existsSync(UPLOADS_DIR)) {
     }
 }
 
+// Zorg ervoor dat de publieke uploads directory bestaat
+const PUBLIC_UPLOADS_DIR = path.join(__dirname, '../public/temp-uploads');
+if (!fs.existsSync(PUBLIC_UPLOADS_DIR)) {
+    try {
+        fs.mkdirSync(PUBLIC_UPLOADS_DIR, { recursive: true });
+        console.log(`Publieke uploads directory aangemaakt: ${PUBLIC_UPLOADS_DIR}`);
+    } catch (error) {
+        console.error(`Kon publieke uploads directory niet aanmaken: ${error.message}`);
+    }
+}
+
 // Configureer multer storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -1577,6 +1588,11 @@ app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
         
         console.log(`[${new Date().toISOString()}] Bestand geüpload: ${req.file.filename}`);
         
+        // Kopieer het bestand naar de publieke directory voor toegang in productie
+        const publicFilePath = path.join(PUBLIC_UPLOADS_DIR, req.file.filename);
+        fs.copyFileSync(req.file.path, publicFilePath);
+        console.log(`Bestand gekopieerd naar publieke directory: ${publicFilePath}`);
+        
         // Stuur URL naar het geüploade bestand terug
         const fileUrl = `/temp-uploads/${req.file.filename}`;
         
@@ -1595,6 +1611,9 @@ app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
 
 // Voeg een route toe voor bestanden in de uploads directory
 app.use('/temp-uploads', express.static(UPLOADS_DIR));
+// Voeg ook een route toe voor bestanden in de publieke uploads directory
+// Dit is een fallback voor als het bestand niet in de temp directory bestaat
+app.use('/temp-uploads', express.static(PUBLIC_UPLOADS_DIR));
 
 // Voeg een route handler toe voor het ontbrekende welcome-bot.svg bestand
 app.get('/img/welcome-bot.svg', (req, res) => {
@@ -1608,6 +1627,30 @@ app.get('/img/welcome-bot.svg', (req, res) => {
             <line x1="15" y1="9" x2="15.01" y2="9"></line>
         </svg>
     `);
+});
+
+// Speciale route voor ontbrekende afbeeldingen
+app.get('/temp-uploads/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, '../public/temp-uploads', filename);
+  
+  // Controleer of het bestand bestaat
+  if (fs.existsSync(filePath)) {
+    // Als het bestand bestaat, stuur het
+    res.sendFile(filePath);
+  } else {
+    // Anders, genereer een placeholder SVG
+    const svgPlaceholder = `
+    <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+      <rect width="200" height="200" fill="#f0f0f0"/>
+      <text x="50%" y="50%" font-family="Arial" font-size="14" fill="#565252" text-anchor="middle">Afbeelding niet gevonden</text>
+      <text x="50%" y="65%" font-family="Arial" font-size="12" fill="#565252" text-anchor="middle">${filename}</text>
+    </svg>
+    `;
+    
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(svgPlaceholder);
+  }
 });
 
 // Start de server

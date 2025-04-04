@@ -13,6 +13,7 @@ const cors = require('cors');
 const fetch = require('node-fetch');
 const multer = require('multer');
 const crypto = require('crypto');
+const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3500;
@@ -1530,7 +1531,7 @@ app.get('/api/feedback-proxy/download', async (req, res) => {
 });
 
 // Zorg ervoor dat de uploads directory bestaat
-const UPLOADS_DIR = path.join(__dirname, '../public/uploads');
+const UPLOADS_DIR = path.join(process.env.TEMP || os.tmpdir(), 'botpress-uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
     try {
         fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -1577,7 +1578,7 @@ app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
         console.log(`[${new Date().toISOString()}] Bestand geüpload: ${req.file.filename}`);
         
         // Stuur URL naar het geüploade bestand terug
-        const fileUrl = `/uploads/${req.file.filename}`;
+        const fileUrl = `/temp-uploads/${req.file.filename}`;
         
         res.json({
             success: true,
@@ -1593,7 +1594,7 @@ app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
 });
 
 // Voeg een route toe voor bestanden in de uploads directory
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use('/temp-uploads', express.static(UPLOADS_DIR));
 
 // Voeg een route handler toe voor het ontbrekende welcome-bot.svg bestand
 app.get('/img/welcome-bot.svg', (req, res) => {

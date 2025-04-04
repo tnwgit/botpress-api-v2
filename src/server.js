@@ -11,6 +11,8 @@ const FileStore = require('session-file-store')(session);
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const multer = require('multer');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3500;
@@ -1067,8 +1069,8 @@ app.post('/api/auth/logout', (req, res) => {
     
     // Verwijder de sessie
     if (req.session) {
-        req.session.destroy((err) => {
-            if (err) {
+    req.session.destroy((err) => {
+        if (err) {
                 console.error('Fout bij vernietigen sessie:', err);
                 return res.status(500).json({ error: 'Kon sessie niet vernietigen' });
             }
@@ -1525,6 +1527,86 @@ app.get('/api/feedback-proxy/download', async (req, res) => {
             details: error.message
         });
     }
+});
+
+// Zorg ervoor dat de uploads directory bestaat
+const UPLOADS_DIR = path.join(__dirname, '../public/uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+    try {
+        fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+        console.log(`Uploads directory aangemaakt: ${UPLOADS_DIR}`);
+    } catch (error) {
+        console.error(`Kon uploads directory niet aanmaken: ${error.message}`);
+    }
+}
+
+// Configureer multer storage
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, UPLOADS_DIR);
+    },
+    filename: function (req, file, cb) {
+        // Genereer unieke bestandsnaam
+        const uniqueSuffix = crypto.randomBytes(8).toString('hex');
+        const fileExt = path.extname(file.originalname);
+        cb(null, `${Date.now()}-${uniqueSuffix}${fileExt}`);
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB maximum bestandsgrootte
+    },
+    fileFilter: function (req, file, cb) {
+        // Accepteer alleen afbeeldingen
+        if (!file.mimetype.startsWith('image/')) {
+            return cb(new Error('Alleen afbeeldingen zijn toegestaan!'), false);
+        }
+        cb(null, true);
+    }
+});
+
+// API endpoint voor het uploaden van bestanden
+app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Geen bestand geüpload' });
+        }
+        
+        console.log(`[${new Date().toISOString()}] Bestand geüpload: ${req.file.filename}`);
+        
+        // Stuur URL naar het geüploade bestand terug
+        const fileUrl = `/uploads/${req.file.filename}`;
+        
+        res.json({
+            success: true,
+            url: fileUrl,
+            filename: req.file.filename,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        });
+    } catch (error) {
+        console.error('Fout bij uploaden bestand:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het uploaden van het bestand' });
+    }
+});
+
+// Voeg een route toe voor bestanden in de uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
+// Voeg een route handler toe voor het ontbrekende welcome-bot.svg bestand
+app.get('/img/welcome-bot.svg', (req, res) => {
+    // Stuur een eenvoudige SVG terug
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#2C6BED" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+    `);
 });
 
 // Start de server

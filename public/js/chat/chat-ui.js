@@ -21,8 +21,38 @@ function addMessageToUI(text, sender) {
     
     // Verwerk markdown en sanitize
     if (sender === 'bot') {
-        const sanitizedHtml = DOMPurify.sanitize(marked.parse(text));
-        messageDiv.innerHTML = sanitizedHtml;
+        // Verwerk eerst ruwe HTML links in het bericht
+        let fixedText = text;
+        
+        // Verwijder codeblok notatie rondom links
+        fixedText = fixedText.replace(/```\s*(<a href=[^>]+>[^<]+<\/a>)\s*```/g, '$1');
+        
+        // Detecteer HTML link code die als platte tekst wordt weergegeven (verbeterde versie)
+        const htmlLinkPattern = /<a href=(?:"|'|)(?:\{)?["']?(https?:\/\/[^"'\s\}]+)["']?(?:\})?(?:"|'|)(?:\s+target=(?:"|'|)(?:\{)?["']?_blank["']?(?:\})?(?:"|'|))?(?:\s+rel=(?:"|'|)(?:\{)?["']?noopener noreferrer["']?(?:\})?(?:"|'|))?>(.*?)<\/a>/g;
+        
+        // Vervang met correct geformatteerde HTML link
+        fixedText = fixedText.replace(htmlLinkPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>');
+        
+        // Fix JSON-achtige syntax in links
+        fixedText = fixedText.replace(/<a href=\{([^}]+)\}/g, '<a href="$1"');
+        
+        // Parse markdown in HTML
+        const sanitizedHtml = DOMPurify.sanitize(marked.parse(fixedText), {
+            ADD_ATTR: ['target', 'rel']
+        });
+        
+        // Zorg ervoor dat alle links target="_blank" hebben
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = sanitizedHtml;
+        
+        // Alle links in de content target="_blank" geven
+        const links = tempDiv.querySelectorAll('a');
+        links.forEach(link => {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+        });
+        
+        messageDiv.innerHTML = tempDiv.innerHTML;
     } else {
         messageDiv.textContent = text;
     }

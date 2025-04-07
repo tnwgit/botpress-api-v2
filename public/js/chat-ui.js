@@ -182,8 +182,23 @@ function addMessage(message, isUser = false, chatMessages) {
             sanitize: false,
         });
 
+        // Verwerk eerst ruwe HTML links in het bericht
+        let fixedMessage = message;
+        
+        // Verwijder codeblok notatie rondom links
+        fixedMessage = fixedMessage.replace(/```\s*(<a href=[^>]+>[^<]+<\/a>)\s*```/g, '$1');
+        
+        // Detecteer HTML link code die als platte tekst wordt weergegeven
+        const htmlLinkPattern = /<a href=(?:"|'|)(?:\{)?["']?(https?:\/\/[^"'\s\}]+)["']?(?:\})?(?:"|'|)(?:\s+target=(?:"|'|)(?:\{)?["']?_blank["']?(?:\})?(?:"|'|))?(?:\s+rel=(?:"|'|)(?:\{)?["']?noopener noreferrer["']?(?:\})?(?:"|'|))?>(.*?)<\/a>/g;
+        
+        // Vervang met correct geformatteerde HTML link
+        fixedMessage = fixedMessage.replace(htmlLinkPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>');
+        
+        // Fix JSON-achtige syntax in links
+        fixedMessage = fixedMessage.replace(/<a href=\{([^}]+)\}/g, '<a href="$1"');
+        
         // Parse markdown naar HTML
-        let htmlContent = marked.parse(message);
+        let htmlContent = marked.parse(fixedMessage);
         
         // Voeg target="_blank" toe aan alle links
         htmlContent = htmlContent.replace(/<a href="/g, '<a target="_blank" href="');
@@ -192,9 +207,21 @@ function addMessage(message, isUser = false, chatMessages) {
         if (window.DOMPurify) {
             const cleanHtml = DOMPurify.sanitize(htmlContent, {
                 ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'code', 'pre', 'blockquote'],
-                ALLOWED_ATTR: ['href', 'target']
+                ALLOWED_ATTR: ['href', 'target', 'rel']
             });
-            messageElement.innerHTML = cleanHtml;
+            
+            // Zorg ervoor dat alle links zeker target="_blank" hebben
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = cleanHtml;
+            
+            // Alle links in de content target="_blank" geven
+            const links = tempDiv.querySelectorAll('a');
+            links.forEach(link => {
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+            });
+            
+            messageElement.innerHTML = tempDiv.innerHTML;
         } else {
             messageElement.innerHTML = htmlContent;
         }

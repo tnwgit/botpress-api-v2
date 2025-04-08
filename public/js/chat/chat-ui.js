@@ -35,8 +35,131 @@ function addMessageToUI(text, sender) {
         
         // Fix JSON-achtige syntax in links
         fixedText = fixedText.replace(/<a href=\{([^}]+)\}/g, '<a href="$1"');
+
+        // Verbeterde multiple choice regex - ondersteunt meerdere formaten
+        // Reguliere multiple choice met genummerde of geletterde opties - veel specifieker formulering
+        const multipleChoiceRegex = /(.+?)\s*\n\s*(?:(?:Kies uit|Opties|Keuzes|Selecteer|Je kunt kiezen uit|Maak een keuze|Kies één optie|Keuzemogelijkheden|Selecteer één van de volgende|Geef aan welke optie)(?:\s*een\s*van)?:?\s*)?(?:\n\s*)?([A-Za-z0-9][.)]\s*[^\n]+(?:\n\s*[A-Za-z0-9][.)]\s*[^\n]+)*)/i;
         
-        // Parse markdown in HTML
+        // Lijst met opties/keuzen (zonder nummering of letters)
+        const listChoiceRegex = /(.+?)\s*\n\s*(?:(?:Kies uit|Opties|Keuzes|Selecteer|Je kunt kiezen uit|Maak een keuze|Kies één optie|Keuzemogelijkheden|Selecteer één van de volgende|Geef aan welke optie)(?:\s*een\s*van)?:?\s*)?(?:\n\s*)?(?:[-*•]\s*[^\n]+(?:\n\s*[-*•]\s*[^\n]+)+)/i;
+        
+        // Regex voor individuele opties (zowel genummerd/geletterd als met streepjes)
+        const choiceItemRegex = /\s*(?:([A-Za-z0-9][.)])|[-*•]|^\s*)\s*([^\n]+)/gm;
+        
+        // Controleer of het bericht woorden bevat die specifiek op een keuze duiden
+        const containsChoiceKeyword = fixedText.match(/kies|opties|keuzes|selecteer|maak een keuze|geef aan/i);
+        
+        // Probeer eerst de genummerde/geletterde multiple choice optie
+        let multipleChoiceMatch = containsChoiceKeyword ? fixedText.match(multipleChoiceRegex) : null;
+        
+        // Als dat niet werkt, probeer dan de lijst met streepjes
+        if (!multipleChoiceMatch && containsChoiceKeyword) {
+            multipleChoiceMatch = fixedText.match(listChoiceRegex);
+        }
+        
+        if (multipleChoiceMatch && containsChoiceKeyword) {
+            // Vraag gevonden met multiple choice opties
+            const question = multipleChoiceMatch[1].trim();
+            let optionsText = multipleChoiceMatch[2] || multipleChoiceMatch[0].split(/\n/).slice(1).join('\n');
+            
+            // Parse de opties uit de tekst
+            const options = [];
+            let match;
+            
+            // Reset de regex voor hergebruik
+            choiceItemRegex.lastIndex = 0;
+            
+            while ((match = choiceItemRegex.exec(optionsText)) !== null) {
+                if (match[2] && match[2].trim()) {
+                    options.push(match[2].trim());
+                }
+            }
+            
+            // Als we opties hebben, maak een multiple choice interface
+            if (options.length > 0) {
+                // Maak een fragment voor betere performance
+                const fragment = document.createDocumentFragment();
+                
+                // Voeg de vraag toe als normale tekst
+                const questionElement = document.createElement('div');
+                questionElement.className = 'bot-question';
+                
+                // Parse vraag markdown in HTML
+                const sanitizedHtml = DOMPurify.sanitize(marked.parse(question), {
+                    ADD_ATTR: ['target', 'rel']
+                });
+                
+                questionElement.innerHTML = sanitizedHtml;
+                fragment.appendChild(questionElement);
+                
+                // Voeg de choice container toe
+                const choicesContainer = document.createElement('div');
+                choicesContainer.className = 'multiple-choice-container';
+                
+                // Voeg elke optie toe als knop
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = 'multiple-choice-button';
+                    button.textContent = option;
+                    button.onclick = function() {
+                        if (!isWaitingForResponse) {
+                            sendUserMessage(option);
+                        } else {
+                            showNotification("Even geduld, je vorige vraag wordt nog verwerkt...");
+                        }
+                    };
+                    choicesContainer.appendChild(button);
+                });
+                
+                fragment.appendChild(choicesContainer);
+                
+                // Voeg toe aan het berichten element
+                messageDiv.appendChild(fragment);
+                
+                // Voeg CSS toe voor multiple choice buttons als deze nog niet bestaat
+                if (!document.querySelector('style[data-multiple-choice="true"]')) {
+                    const style = document.createElement('style');
+                    style.setAttribute('data-multiple-choice', 'true');
+                    style.textContent = `
+                        .bot-question {
+                            margin-bottom: 12px;
+                        }
+                        
+                        .multiple-choice-container {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 8px;
+                            margin-top: 8px;
+                        }
+                        
+                        .multiple-choice-button {
+                            background-color: var(--primary-color, #007bff);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            padding: 8px 12px;
+                            font-size: 14px;
+                            text-align: left;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        }
+                        
+                        .multiple-choice-button:hover {
+                            opacity: 0.9;
+                            transform: translateY(-2px);
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                // Skip verdere verwerking omdat we de inhoud al hebben toegevoegd
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                return;
+            }
+        }
+        
+        // Parse markdown in HTML als het geen multiple choice was of we konden de opties niet extraheren
         const sanitizedHtml = DOMPurify.sanitize(marked.parse(fixedText), {
             ADD_ATTR: ['target', 'rel']
         });
